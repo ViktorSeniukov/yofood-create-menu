@@ -6,10 +6,17 @@ import mammoth from 'mammoth'
 import { useApiKey } from './useApiKey'
 
 import { translateMenu } from '@/services/claudeService'
+import mockMenu from '@/fixtures/mockMenu.json'
 
 import type { TranslatedMenu } from '@/types/menu'
 
+const USE_MOCK = import.meta.env.DEV
+
 const SUPPORTED_EXTENSIONS = ['txt', 'docx']
+
+const translatedMenu = ref<TranslatedMenu | null>(null)
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 export function useMenuTranslation(): {
   translatedMenu: Ref<TranslatedMenu | null>
@@ -18,9 +25,6 @@ export function useMenuTranslation(): {
   translateFile: (file: File) => Promise<void>
   reset: () => void
 } {
-  const translatedMenu = ref<TranslatedMenu | null>(null)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
   const { apiKey, hasApiKey } = useApiKey()
 
   async function extractText(file: File): Promise<string> {
@@ -42,6 +46,11 @@ export function useMenuTranslation(): {
   }
 
   async function translateFile(file: File): Promise<void> {
+    if (USE_MOCK) {
+      translatedMenu.value = mockMenu as TranslatedMenu
+      return
+    }
+
     if (!hasApiKey.value) {
       error.value = 'API-ключ не задан'
       return

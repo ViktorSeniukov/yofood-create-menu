@@ -1,0 +1,237 @@
+{
+  "Понедельник": {
+    "Завтрак": [
+      "Яйца по-беконски с витаминным салатом / Bekendeks jaja sa vitaminskom salatom",
+      "Сербский завтрак / Srpski doručak",
+      "Цезарь ролл с цельнозерновой тортильей и соусом тараторь / Cezar wrap sa integralnom tortiljom i tarator salatom",
+      "Пшённая каша с соевым молоком с ванилью, сухофруктами и орехами (веган) / Kaša od prosa sa sojinim mlekom od vanile, suvim voćem i orašastim plodovima",
+      "Овсяная каша с семенами чиа, фундуком, сухофруктами и ванильным соевым молоком (веган, постная) / Ovsena kaša sa čia semenom, lešnikom, suvim voćem i sojinim mlekom od vanile"
+    ],
+    "Сок": [
+      "Свежевыжатый апельсиновый сок / Ceđena pomorandža",
+      "Свежевыжатый красный грейпфрут / Ceđeni crveni grejp",
+      "Свежевыжатое яблоко / Ceđena jabuka",
+      "Домашний сок из бузины с фермы Бела река / Domaći sok od zove sa Farme Bela reka",
+      "Малиджано (апельсин, малина) / Malidžano",
+      "Сильвер сёрфер (красный грейпфрут, гренни смит, черника, малина, имбирь) / Silver surfer",
+      "Супер шейкер (апельсин, клубника, банан) / Super shaker"
+    ],
+    "Суп": [
+      "Куриный суп с лапшой / Pileća supa sa rezancima",
+      "Царский суп Ши / Carski Ši"
+    ],
+    "Горячее": [
+      "Подварак с копчёной рулькой / Podvarak sa dimljenom butkicom",
+      "Куриное бедро, запечённое с соевым соусом и мёдом / Pileći batak zapečen sa soja sosom i medom",
+      "Тушёная свиная ножка в тёмном пиве / Dinstani svinjski but u tamnom pivu",
+      "Кремовый орзо с индейкой, грибами и брюссельской капустой / Kremasti orzo sa ćuretinom, pečurkama i prokeljom",
+      "Рагу из чечевицы (веган) / Ragu od sočiva",
+      "Филе копчёной форели / Fileti dimljene pastrmke",
+      "Отварная индейка / Barena ćuretina"
+    ],
+    "Гарнир": [
+      "Картофельное пюре / Krompir pire",
+      "Отварная брокколи (веган) / Bareni bokoli",
+      "Ризи бизи (веган) / Rizi bizi",
+      "Киноа (веган) / Kinoa"
+    ],
+    "Салат": [
+      "Витаминный салат / Vitaminska salata",
+      "Салат тараторь / Tarator salata",
+      "Салат из свёклы (веган) / Cvekla salata",
+      "Салат с креветками / Salata sa gamborima",
+      "Салат Цезарь / Cezar salata"
+    ],
+    "Десерт": [
+      "Трес лечес / Tres leches",
+      "Чизкейк / Cheese cake"
+    ]
+  },
+  "Вторник": {
+    "Завтрак": [
+      "Омлет с трёхцветным перцем и пршутом / Omlet sa tricolore paprikom i pršutom",
+      "Сэндвич в цельнозерновой булочке с индейкой, соусом тартар, помидором и хрустящим салатом / Sendvič u integralnoj kifli sa ćuretinom, tartar sosom, paradajzom i hrskavim salatama",
+      "Авокадо с пршутом, варёным яйцом, черри помидорами и семенами на цельнозерновом тосте / Avokado sa pršutom, kuvanim jajetom, cherry paradajzom i semenkama na integralnom tostu",
+      "Мюсли с греческим йогуртом, мёдом, орехом пекан и дегидрированной малиной / Musli sa grčkim jogurtom, medom, pekan orahom i dehidriranom malinom",
+      "Чиа-пудинг с малиной и орехами (веган, постный) / Chia puding sa malinama i orašastim plodovima"
+    ],
+    "Сок": [
+      "Свежевыжатый апельсиновый сок / Ceđena pomorandža",
+      "Свежевыжатый красный грейпфрут / Ceđeni crveni grejp",
+      "Свежевыжатое яблоко / Ceđena jabuka",
+      "Домашний сок из бузины с фермы Бела река / Domaći sok od zove sa Farme Bela reka",
+      "Малиджано (апельсин, малина) / Malidžano",
+      "Сильвер сёрфер (красный грейпфрут, гренни смит, черника, малина, имбирь) / Silver surfer",
+      "Супер шейкер (апельсин, клубника, банан) / Super shaker"
+    ],
+    "Суп": [
+      "Прозрачный говяжий суп с лапшой / Bistra juneća supa sa rezancima"
+    ],
+    "Горячее": [
+      "Соте Строганов / Sote Stroganov",
+      "Хрустящая курица в кукурузных хлопьях и миндале / Hrskava piletina u cornfleksu i bademu",
+      "Тушёная свиная лопатка в соусе BBQ / Drpana svinjska plećka u BBQ sosu",
+      "Кремовое ризотто с индейкой, тыквой и тимьяном / Kremasti rižoto sa ćuretinom, bundevom i majčinom dušicom",
+      "Гуляш из лесных грибов (веган) / Gulaš od šumskih pečuraka",
+      "Филе хека в неаполитанском соусе / Fileti oslića u napolitan sosu",
+      "Отварная курица / Barena piletina"
+    ],
+    "Гарнир": [
+      "Картофель из духовки (веган) / Krompir iz rerne",
+      "Кукуруза сахарная (веган) / Kukuruz šećerac",
+      "Жасминовый рис (веган) / Jasmin pirinač",
+      "Гречка с овощами (веган) / Heljda sa povrćem"
+    ],
+    "Салат": [
+      "Микс зелёных салатов с помидором, огурцом и красным перцем (веган) / Miks zelenih salata sa paradajzom, krastavcem i crvenom paprikom",
+      "Квашеные огурцы (веган) / Kiseli krastavci",
+      "Капустный салат (веган) / Kupus salata",
+      "Салат с индейкой, яблоком, молодым шпинатом и грецкими орехами / Salata sa ćuretinom, jabukom, baby spanaćem i orasima",
+      "Салат с копчёным лососем / Salata sa dimljenim lososom"
+    ],
+    "Десерт": [
+      "Тирамису / Tiramisu",
+      "Торт Яфа / Jafa torta"
+    ]
+  },
+  "Среда": {
+    "Завтрак": [
+      "Омлет с белыми грибами и козьим сыром / Omlet sa vrganjima i kozijim sirom",
+      "Пинса с мортаделлой, вялеными томатами, руколой и свежим кремом / Pinsa sa mortadelom, sušenim paradajzom, rukolom i fresh kremom",
+      "Бурек с сыром и йогурт / Burek sa sirom i jogurt",
+      "Пшённая каша с тыквой, корицей и орехом пекан (веган, постная) / Proso kaša sa bundevom, cimetom i pekan orahom",
+      "Кокосовая чиа-каша с манго и лимоном (веган, постная) / Kokos chia kaša sa mangom i limunom"
+    ],
+    "Сок": [
+      "Свежевыжатый апельсиновый сок / Ceđena pomorandža",
+      "Свежевыжатый красный грейпфрут / Ceđeni crveni grejp",
+      "Свежевыжатое яблоко / Ceđena jabuka",
+      "Домашний сок из бузины с фермы Бела река / Domaći sok od zove sa Farme Bela reka",
+      "Малиджано (апельсин, малина) / Malidžano",
+      "Сильвер сёрфер (красный грейпфрут, гренни смит, черника, малина, имбирь) / Silver surfer",
+      "Супер шейкер (апельсин, клубника, банан) / Super shaker"
+    ],
+    "Суп": [
+      "Крем-суп из овощей и крапивы (веган) / Krem čorba od povrća i koprive"
+    ],
+    "Горячее": [
+      "Горошек с курицей / Grašak sa piletinom",
+      "Рулет из курицы с копчёным сыром, кабачками и перцем / Rolovana piletina sa dimljenim sirom, tikvicama i paprikom",
+      "Фрикадельки в томатном соусе / Ćufte u paradajz sosu",
+      "Китайская лапша с индейкой, овощами и арахисом / Kineske nudle sa ćuretinom, povrćem i kikirikijem",
+      "Вегетарианская лазанья (веган) / Vege lazanja",
+      "Филе скумбрии в соусе из кешью / Fileti skuše u sosu od indijskog oraha",
+      "Отварная индейка / Barena ćuretina"
+    ],
+    "Гарнир": [
+      "Картофель в саче (веган) / Krompir sač",
+      "Картофельное пюре / Krompir pire",
+      "Кукуруза сахарная (веган) / Kukuruz šećerac",
+      "Пшено (веган) / Proso"
+    ],
+    "Салат": [
+      "Туршия (веган, постная) / Turšija",
+      "Витаминный салат (веган, постный) / Vitaminska salata",
+      "Печёный перец с маринадом из чеснока (веган) / Pečena paprika sa marinadom od belog luka",
+      "Салат с фалафелем (веган) / Salata sa falafelom",
+      "Протеиновый салат с курицей / Proteinska salata sa piletinom"
+    ],
+    "Десерт": [
+      "Баклава с фисташками и молоком / Baklava sa pistaćima i mlekom",
+      "Маковый пирог с белым шоколадом / Mak kolač sa belom čokoladom"
+    ]
+  },
+  "Четверг": {
+    "Завтрак": [
+      "Омлет из белков с молодым шпинатом и хрустящим беконом / Omlet od belanaca sa baby spanaćem i hrskavom slaninom",
+      "Пирог с мясом и йогуртом / Pita sa mesom i jogurtom",
+      "Вегетарианское буррито в цельнозерновой тортилье с хумусом, тофу, хрустящими овощами и салатом / Vege burito u integralnoj tortilji sa humusom, tofu sirom, hrskavim povrćem i salatama",
+      "Сербский сэндвич в чабатте с вяленой шейкой, каймаком, варёным яйцом, помидором и зелёным салатом / Srpski sendvič u cabatti sa suvim vratom, kajmakom, kuvanim jajetom, paradajzom i zelenom salatom",
+      "Чиа-пудинг с малиной и орехами (веган, постный) / Chia puding sa malinama i orašastim plodovima"
+    ],
+    "Сок": [
+      "Свежевыжатый апельсиновый сок / Ceđena pomorandža",
+      "Свежевыжатый красный грейпфрут / Ceđeni crveni grejp",
+      "Свежевыжатое яблоко / Ceđena jabuka",
+      "Домашний сок из бузины с фермы Бела река / Domaći sok od zove sa Farme Bela reka",
+      "Малиджано (апельсин, малина) / Malidžano",
+      "Сильвер сёрфер (красный грейпфрут, гренни смит, черника, малина, имбирь) / Silver surfer",
+      "Супер шейкер (апельсин, клубника, банан) / Super shaker"
+    ],
+    "Суп": [
+      "Телячий суп / Teleća čorba",
+      "Крем-суп из томатов (веган) / Potaž od paradajza"
+    ],
+    "Горячее": [
+      "Голубцы из кислой капусты / Sarma od kiselog kupusa",
+      "Куриный джерри-бургер с плавленым сыром чеддер / Pileći jerry burger sa topljenim čedar sirom",
+      "Ароматизированное куриное филе на гриле / Aromatizovani pileći file na žaru",
+      "Постные голубцы в томатном соусе (веган) / Posne sarmice u paradajz sosu",
+      "Хрустящее филе сома / Hrskavi fileti soma",
+      "Отварная курица / Barena piletina"
+    ],
+    "Гарнир": [
+      "Картофельное пюре / Krompir pire",
+      "Грилованные шампиньоны (веган) / Grilovani šampinjoni",
+      "Запечённые овощи из духовки (веган) / Zapečeno povrće iz rerne",
+      "Чечевица (веган) / Sočivo"
+    ],
+    "Салат": [
+      "Мексиканский салат (веган) / Meksička salata",
+      "Салат коулслоу / Coleslaw salata",
+      "Капустный салат (веган) / Kupus salata",
+      "Салат с тунцом / Salata sa tunom",
+      "Салат с копчёной курицей, плавленым сыром чеддер и свёклой / Salata sa dimljenom piletinom, topljenim čedar sirom i cveklom"
+    ],
+    "Десерт": [
+      "Домашние холодные блинчики с джемом из черники и лаванды с фермы Бела река / Domaće hladne palačinke sa džemom od borovnice i lavande sa Farme Bela reka",
+      "Торт Москва / Moskva torta"
+    ]
+  },
+  "Пятница": {
+    "Завтрак": [
+      "Яичница с домашним сыром и печёным перцем / Kajgana sa domaćim sirom i pečenom paprikom",
+      "Бейгл с грудкой индейки, сливочным сыром, шнитт-луком, горгонзолой и огурцом / Bagel sa ćurećim prsima, mlečnim namazom, vlašcem, gorgonzolom i krastavcem",
+      "Копчёный лосось с авокадо, печёной свёклой и руколой на тосте / Dimljeni losos sa avokadom, pečenom cveklom i rukolom na prepečenom tost hlebu",
+      "Гречневая каша с кокосовой мукой, миндалём и персиком (веган, постная) / Poridž od heljde sa kokosovim brašnom, bademom i breskvom",
+      "Протеиновая каша из банана, чиа, овсяных хлопьев, какао, арахисового масла и соевого молока (веган, постная) / Proteinska kaša od banana, chia, ovsene pahuljice, kakao, kikiriki puter, sojino mleko"
+    ],
+    "Сок": [
+      "Свежевыжатый апельсиновый сок / Ceđena pomorandža",
+      "Свежевыжатый красный грейпфрут / Ceđeni crveni grejp",
+      "Свежевыжатое яблоко / Ceđena jabuka",
+      "Домашний сок из бузины с фермы Бела река / Domaći sok od zove sa Farme Bela reka",
+      "Малиджано (апельсин, малина) / Malidžano",
+      "Сильвер сёрфер (красный грейпфрут, гренни смит, черника, малина, имбирь) / Silver surfer",
+      "Супер шейкер (апельсин, клубника, банан) / Super shaker"
+    ],
+    "Суп": [
+      "Крем-суп из овощей (веган) / Potaž od povrća"
+    ],
+    "Горячее": [
+      "Свиной перкельт / Svinjski perkelt",
+      "Куриные медальоны в грибном соусе / Pileći medaljoni u sosu od pečuraka",
+      "Маринованная свиная шейка на гриле / Marinirani svinjski vrat na žaru",
+      "Лазанья болоньезе / Lazanja bolonjez",
+      "Жареный хек в кукурузной муке / Prženi oslić u kukuruznom brašnu",
+      "Отварная индейка / Barena ćuretina"
+    ],
+    "Гарнир": [
+      "Запечённый картофель (веган) / Pekarski krompir",
+      "Шпинат по-кремовому / Spanać ala krem",
+      "Отварной рис басмати (веган) / Bareni basmati pirinač",
+      "Булгур (веган) / Bulgur"
+    ],
+    "Салат": [
+      "Моравский салат / Moravska salata",
+      "Витаминный салат (веган) / Vitaminska salata",
+      "Салат из свёклы / Cvekla salata",
+      "Греческий салат / Grčka salata",
+      "Салат с индейкой, персиком и мини-моцареллой / Salata sa ćuretinom, breskvom i baby mocarelom"
+    ],
+    "Десерт": [
+      "Ананас с мёдом (веган) / Ananas sa medom",
+      "Домашний пирог с вишней (веган) / Domaća pita sa višnjama"
+    ]
+  }
+}

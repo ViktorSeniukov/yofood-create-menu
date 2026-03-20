@@ -6,6 +6,7 @@ export type DayOfWeek =
   | 'Пятница'
 
 export type MealCategory =
+  | 'Сок'
   | 'Завтрак'
   | 'Суп'
   | 'Горячее'

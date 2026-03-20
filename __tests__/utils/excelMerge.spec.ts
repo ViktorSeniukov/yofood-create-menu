@@ -7,6 +7,7 @@ import type { TranslatedMenu } from '@/types/menu'
 
 const validMenu: TranslatedMenu = {
   'Понедельник': {
+    'Сок': ['Апельсиновый / Ceđena pomorandža'],
     'Завтрак': ['Омлет / Omlet'],
     'Суп': ['Борщ / Borš'],
     'Горячее': ['Стейк / Stejk'],
@@ -15,6 +16,7 @@ const validMenu: TranslatedMenu = {
     'Десерт': ['Торт / Torta'],
   },
   'Вторник': {
+    'Сок': ['Апельсиновый / Ceđena pomorandža'],
     'Завтрак': [],
     'Суп': ['Щи / Šči'],
     'Горячее': ['Котлета / Kotlet'],
@@ -23,6 +25,7 @@ const validMenu: TranslatedMenu = {
     'Десерт': [],
   },
   'Среда': {
+    'Сок': ['Апельсиновый / Ceđena pomorandža'],
     'Завтрак': ['Каша / Kaša'],
     'Суп': [],
     'Горячее': ['Рыба / Riba'],
@@ -31,6 +34,7 @@ const validMenu: TranslatedMenu = {
     'Десерт': ['Пудинг / Puding'],
   },
   'Четверг': {
+    'Сок': ['Апельсиновый / Ceđena pomorandža'],
     'Завтрак': ['Блины / Palačinke'],
     'Суп': ['Грибной / Gljiva čorba'],
     'Горячее': ['Курица / Piletina'],
@@ -39,6 +43,7 @@ const validMenu: TranslatedMenu = {
     'Десерт': [],
   },
   'Пятница': {
+    'Сок': ['Апельсиновый / Ceđena pomorandža'],
     'Завтрак': ['Сырники / Sirnice'],
     'Суп': [],
     'Горячее': ['Свинина / Svinjetina'],
@@ -120,6 +125,7 @@ describe('mergeMenuIntoTemplate', () => {
       'Понедельник': {
         ...validMenu['Понедельник'],
         'Завтрак': ['Омлет / Omlet', 'Каша / Kaša'],
+        'Сок': ['Апельсиновый / Ceđena pomorandža'],
       },
     }
 

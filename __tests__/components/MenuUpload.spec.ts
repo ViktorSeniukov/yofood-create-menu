@@ -51,12 +51,17 @@ describe('MenuUpload', () => {
   })
 
   it('shows reset link when menu is loaded', () => {
+    const emptyDay = {
+      'Сок': [] as string[], 'Завтрак': [] as string[], 'Суп': [] as string[],
+      'Горячее': [] as string[], 'Гарнир': [] as string[], 'Салат': [] as string[],
+      'Десерт': [] as string[],
+    }
     const mockMenu: TranslatedMenu = {
-      'Понедельник': { 'Завтрак': [], 'Суп': [], 'Горячее': [], 'Гарнир': [], 'Салат': [], 'Десерт': [] },
-      'Вторник': { 'Завтрак': [], 'Суп': [], 'Горячее': [], 'Гарнир': [], 'Салат': [], 'Десерт': [] },
-      'Среда': { 'Завтрак': [], 'Суп': [], 'Горячее': [], 'Гарнир': [], 'Салат': [], 'Десерт': [] },
-      'Четверг': { 'Завтрак': [], 'Суп': [], 'Горячее': [], 'Гарнир': [], 'Салат': [], 'Десерт': [] },
-      'Пятница': { 'Завтрак': [], 'Суп': [], 'Горячее': [], 'Гарнир': [], 'Салат': [], 'Десерт': [] },
+      'Понедельник': { ...emptyDay },
+      'Вторник': { ...emptyDay },
+      'Среда': { ...emptyDay },
+      'Четверг': { ...emptyDay },
+      'Пятница': { ...emptyDay },
     }
     const mock = createMockComposable({ translatedMenu: ref(mockMenu) })
     vi.mocked(useMenuTranslationModule.useMenuTranslation).mockReturnValue(mock)

@@ -3,6 +3,7 @@ import { Collapse, CollapsePanel, Tag, Button } from 'ant-design-vue'
 import { DownloadOutlined } from '@ant-design/icons-vue'
 
 import { DAYS_OF_WEEK, MEAL_CATEGORIES } from '@/constants/menu'
+import { buildMenuWorkbook } from '@/utils/excelMerge'
 
 import type { TranslatedMenu } from '@/types/menu'
 
@@ -12,13 +13,15 @@ interface Props {
 
 const props = defineProps<Props>()
 
-function downloadJson(): void {
-  const json = JSON.stringify(props.menu, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
+function downloadXlsx(): void {
+  const buffer = buildMenuWorkbook(props.menu)
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = 'menu.json'
+  link.download = 'menu.xlsx'
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -28,11 +31,11 @@ function downloadJson(): void {
   <div class="menu-preview">
     <div class="menu-preview__header">
       <h3 class="menu-preview__title">Переведённое меню</h3>
-      <Button size="small" @click="downloadJson">
+      <Button size="small" @click="downloadXlsx">
         <template #icon>
           <DownloadOutlined />
         </template>
-        Скачать JSON
+        Скачать .xlsx
       </Button>
     </div>
     <Collapse>
