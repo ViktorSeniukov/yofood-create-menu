@@ -42,7 +42,7 @@ export function useMenuGeneration(): {
     error.value = null
 
     try {
-      const result = mergeMenuIntoTemplate(templateBuffer, menu)
+      const result = await mergeMenuIntoTemplate(templateBuffer, menu)
       const blob = new Blob([result], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })

@@ -53,121 +53,140 @@ const validMenu: TranslatedMenu = {
   },
 }
 
+/**
+ * Each day block = 1 header + 1 category + 10 data + 1 separator = 13 rows.
+ * Last day has no separator = 12 rows.
+ * Row layout:
+ *   Mon: 0 (header), 1 (categories), 2–11 (data)
+ *   Tue: 13 (header), 14 (categories), 15–24 (data)
+ *   Wed: 26, 27, 28–37
+ *   Thu: 39, 40, 41–50
+ *   Fri: 52, 53, 54–63
+ */
+
 function createTestTemplate(): ArrayBuffer {
   const wb = XLSX.utils.book_new()
-  const rows: (string | null)[][] = []
-
-  const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']
-
-  for (const day of days) {
-    // Header row: day name in column A
-    const header: (string | null)[] = [day]
-    rows.push(header)
-
-    // 3 employee rows
-    for (let i = 1; i <= 3; i++) {
-      const row: (string | null)[] = [null, `Name${i}`, `Surname${i}`]
-      rows.push(row)
-    }
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(rows)
+  const ws = XLSX.utils.aoa_to_sheet([['Employee data placeholder']])
   XLSX.utils.book_append_sheet(wb, ws, 'Tech')
-
-  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-  return buf as ArrayBuffer
+  return XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
 }
 
 describe('mergeMenuIntoTemplate', () => {
-  it('inserts meals into correct cells for each day', () => {
+  it('writes day header in G–L for Monday (row 0)', async () => {
     const template = createTestTemplate()
-    const result = mergeMenuIntoTemplate(template, validMenu)
+    const result = await mergeMenuIntoTemplate(template, validMenu)
 
     const wb = XLSX.read(result, { type: 'array' })
     const sheet = wb.Sheets['Tech']!
 
-    // Понедельник header is row 0, data rows 1-3
-    // Check Завтрак (col G=6) in row 1
-    const cell = sheet[XLSX.utils.encode_cell({ r: 1, c: MEAL_COLUMN_MAP['Завтрак'] })]
-    expect(cell?.v).toBe('Омлет / Omlet')
-  })
-
-  it('fills all employee rows within a day block', () => {
-    const template = createTestTemplate()
-    const result = mergeMenuIntoTemplate(template, validMenu)
-
-    const wb = XLSX.read(result, { type: 'array' })
-    const sheet = wb.Sheets['Tech']!
-
-    // Понедельник: rows 1, 2, 3 should all have the same Суп value
-    for (let row = 1; row <= 3; row++) {
-      const cell = sheet[XLSX.utils.encode_cell({ r: row, c: MEAL_COLUMN_MAP['Суп'] })]
-      expect(cell?.v).toBe('Борщ / Borš')
+    // Row 0: day header — G1 through L1 should be "Понедельник"
+    for (let col = MEAL_COLUMN_MAP['Завтрак']; col <= MEAL_COLUMN_MAP['Десерт']; col++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r: 0, c: col })]
+      expect(cell?.v).toBe('Понедельник')
     }
   })
 
-  it('writes empty string when category has no dishes', () => {
+  it('writes category headers in row 1', async () => {
     const template = createTestTemplate()
-    const result = mergeMenuIntoTemplate(template, validMenu)
+    const result = await mergeMenuIntoTemplate(template, validMenu)
 
     const wb = XLSX.read(result, { type: 'array' })
     const sheet = wb.Sheets['Tech']!
 
-    // Вторник header is row 4, data rows 5-7
-    // Завтрак is empty for Вторник
-    const cell = sheet[XLSX.utils.encode_cell({ r: 5, c: MEAL_COLUMN_MAP['Завтрак'] })]
-    expect(cell?.v).toBe('')
+    // Row 1: category headers
+    expect(sheet[XLSX.utils.encode_cell({ r: 1, c: MEAL_COLUMN_MAP['Сок'] })]?.v)
+      .toBe('Соки')
+    expect(sheet[XLSX.utils.encode_cell({ r: 1, c: MEAL_COLUMN_MAP['Завтрак'] })]?.v)
+      .toBe('Завтрак')
+    expect(sheet[XLSX.utils.encode_cell({ r: 1, c: MEAL_COLUMN_MAP['Десерт'] })]?.v)
+      .toBe('Десерт')
   })
 
-  it('joins multiple dishes with comma', () => {
+  it('writes dishes vertically starting at row 2', async () => {
+    const template = createTestTemplate()
+    const result = await mergeMenuIntoTemplate(template, validMenu)
+
+    const wb = XLSX.read(result, { type: 'array' })
+    const sheet = wb.Sheets['Tech']!
+
+    // Monday data starts at row 2
+    const cell = sheet[XLSX.utils.encode_cell({ r: 2, c: MEAL_COLUMN_MAP['Завтрак'] })]
+    expect(cell?.v).toBe('Омлет / Omlet')
+  })
+
+  it('leaves cells empty when category has no dishes', async () => {
+    const template = createTestTemplate()
+    const result = await mergeMenuIntoTemplate(template, validMenu)
+
+    const wb = XLSX.read(result, { type: 'array' })
+    const sheet = wb.Sheets['Tech']!
+
+    // Tuesday: row 13 header, 14 categories, 15+ data
+    // Завтрак is empty for Tuesday
+    const cell = sheet[XLSX.utils.encode_cell({ r: 15, c: MEAL_COLUMN_MAP['Завтрак'] })]
+    expect(cell).toBeUndefined()
+  })
+
+  it('writes multiple dishes in separate rows', async () => {
     const menuWithMultiple: TranslatedMenu = {
       ...validMenu,
       'Понедельник': {
         ...validMenu['Понедельник'],
         'Завтрак': ['Омлет / Omlet', 'Каша / Kaša'],
-        'Сок': ['Апельсиновый / Ceđena pomorandža'],
       },
     }
 
     const template = createTestTemplate()
-    const result = mergeMenuIntoTemplate(template, menuWithMultiple)
+    const result = await mergeMenuIntoTemplate(template, menuWithMultiple)
 
     const wb = XLSX.read(result, { type: 'array' })
     const sheet = wb.Sheets['Tech']!
 
-    const cell = sheet[XLSX.utils.encode_cell({ r: 1, c: MEAL_COLUMN_MAP['Завтрак'] })]
-    expect(cell?.v).toBe('Омлет / Omlet, Каша / Kaša')
+    // Row 2: first dish, Row 3: second dish
+    const cell1 = sheet[XLSX.utils.encode_cell({ r: 2, c: MEAL_COLUMN_MAP['Завтрак'] })]
+    const cell2 = sheet[XLSX.utils.encode_cell({ r: 3, c: MEAL_COLUMN_MAP['Завтрак'] })]
+    expect(cell1?.v).toBe('Омлет / Omlet')
+    expect(cell2?.v).toBe('Каша / Kaša')
   })
 
-  it('throws if Tech sheet is missing', () => {
+  it('throws if Tech sheet is missing', async () => {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([['data']])
     XLSX.utils.book_append_sheet(wb, ws, 'Other')
     const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
 
-    expect(() => mergeMenuIntoTemplate(buf, validMenu))
-      .toThrow('Лист "Tech" не найден')
+    await expect(mergeMenuIntoTemplate(buf, validMenu))
+      .rejects.toThrow('Лист "Tech" не найден')
   })
 
-  it('throws if no day headers found', () => {
-    const wb = XLSX.utils.book_new()
-    const ws = XLSX.utils.aoa_to_sheet([['No days here'], ['Just data']])
-    XLSX.utils.book_append_sheet(wb, ws, 'Tech')
-    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
-
-    expect(() => mergeMenuIntoTemplate(buf, validMenu))
-      .toThrow('Не найдены заголовки дней')
-  })
-
-  it('handles all five days correctly', () => {
+  it('handles all five days correctly', async () => {
     const template = createTestTemplate()
-    const result = mergeMenuIntoTemplate(template, validMenu)
+    const result = await mergeMenuIntoTemplate(template, validMenu)
 
     const wb = XLSX.read(result, { type: 'array' })
     const sheet = wb.Sheets['Tech']!
 
-    // Пятница header is row 16, data rows 17-19
-    const cell = sheet[XLSX.utils.encode_cell({ r: 17, c: MEAL_COLUMN_MAP['Горячее'] })]
-    expect(cell?.v).toBe('Свинина / Svinjetina')
+    // Friday: header at row 52, categories at 53, data at 54+
+    const headerCell = sheet[XLSX.utils.encode_cell({ r: 52, c: MEAL_COLUMN_MAP['Завтрак'] })]
+    expect(headerCell?.v).toBe('Пятница')
+
+    const dataCell = sheet[XLSX.utils.encode_cell({ r: 54, c: MEAL_COLUMN_MAP['Горячее'] })]
+    expect(dataCell?.v).toBe('Свинина / Svinjetina')
+  })
+
+  it('writes juices only for Monday', async () => {
+    const template = createTestTemplate()
+    const result = await mergeMenuIntoTemplate(template, validMenu)
+
+    const wb = XLSX.read(result, { type: 'array' })
+    const sheet = wb.Sheets['Tech']!
+
+    // Monday juice data at row 2, col F (5)
+    const juiceCell = sheet[XLSX.utils.encode_cell({ r: 2, c: MEAL_COLUMN_MAP['Сок'] })]
+    expect(juiceCell?.v).toBe('Апельсиновый / Ceđena pomorandža')
+
+    // Tuesday juice header should NOT exist (row 14, col F)
+    const tuesdayJuiceHeader = sheet[XLSX.utils.encode_cell({ r: 14, c: MEAL_COLUMN_MAP['Сок'] })]
+    expect(tuesdayJuiceHeader).toBeUndefined()
   })
 })

@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import JSZip from 'jszip'
 
 import {
   DAY_SHEET_NAMES,
@@ -62,9 +63,6 @@ export function buildMenuWorkbook(
       ? MEAL_CATEGORIES
       : MEAL_CATEGORIES.filter((cat) => cat !== 'Сок')
 
-    // Always reserve a fixed number of rows per day block
-    const ROWS_PER_DAY = 10
-
     // Data rows: one row per dish index (up to ROWS_PER_DAY)
     for (let i = 0; i < ROWS_PER_DAY; i++) {
       for (const category of categories) {
@@ -98,56 +96,215 @@ export function buildMenuWorkbook(
   }) as ArrayBuffer
 }
 
-/**
- * Merges translated menu into an xlsx template buffer.
- * Writes menu catalog into the Tech sheet starting at F1,
- * one dish per cell vertically. Columns A–E are not touched.
- */
-export function mergeMenuIntoTemplate(
-  templateBuffer: ArrayBuffer,
-  menu: TranslatedMenu
-): ArrayBuffer {
-  const workbook = XLSX.read(templateBuffer, { type: 'array' })
-  const sheet = workbook.Sheets[TECH_SHEET_NAME]
+// --- ZIP/XML approach for mergeMenuIntoTemplate ---
 
-  if (!sheet) {
-    throw new Error(
-      `Лист "${TECH_SHEET_NAME}" не найден в загруженном файле`
-    )
+/** Convert 0-based column index to Excel column letter (0→A, 5→F, 11→L) */
+function colIndexToLetter(col: number): string {
+  let letter = ''
+  let n = col
+  while (n >= 0) {
+    letter = String.fromCharCode((n % 26) + 65) + letter
+    n = Math.floor(n / 26) - 1
+  }
+  return letter
+}
+
+/** Build cell reference like "F1" from 0-based row and col */
+function cellRef(row: number, col: number): string {
+  return `${colIndexToLetter(col)}${row + 1}`
+}
+
+/** Escape XML special characters */
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * Parse shared strings from xl/sharedStrings.xml.
+ * Returns array of string values indexed by position.
+ */
+function parseSharedStrings(xml: string): string[] {
+  const strings: string[] = []
+  const siRegex = /<si>([\s\S]*?)<\/si>/g
+  let match: RegExpExecArray | null
+
+  while ((match = siRegex.exec(xml)) !== null) {
+    const siContent = match[1]!
+    // Extract text from <t> tags (may have multiple <r><t> for rich text)
+    const texts: string[] = []
+    const tRegex = /<t[^>]*>([\s\S]*?)<\/t>/g
+    let tMatch: RegExpExecArray | null
+    while ((tMatch = tRegex.exec(siContent)) !== null) {
+      texts.push(tMatch[1]!)
+    }
+    strings.push(texts.join(''))
   }
 
-  const range = XLSX.utils.decode_range(sheet['!ref'] ?? 'A1')
+  return strings
+}
+
+/**
+ * Rebuild xl/sharedStrings.xml with additional strings.
+ * Returns the new XML content.
+ */
+function rebuildSharedStrings(
+  originalXml: string,
+  newStrings: string[]
+): string {
+  if (newStrings.length === 0) return originalXml
+
+  // Build new <si> entries
+  const newEntries = newStrings
+    .map((s) => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`)
+    .join('')
+
+  // Update count and uniqueCount in <sst> tag
+  const sstMatch = originalXml.match(
+    /<sst[^>]*count="(\d+)"[^>]*uniqueCount="(\d+)"[^>]*>/
+  )
+  if (!sstMatch) {
+    // No existing shared strings — create new file
+    const total = newStrings.length
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n` +
+      `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ` +
+      `count="${total}" uniqueCount="${total}">${newEntries}</sst>`
+  }
+
+  const oldCount = parseInt(sstMatch[1]!, 10)
+  const oldUnique = parseInt(sstMatch[2]!, 10)
+  const newCount = oldCount + newStrings.length
+  const newUnique = oldUnique + newStrings.length
+
+  let result = originalXml
+    .replace(
+      /count="\d+"/,
+      `count="${newCount}"`
+    )
+    .replace(
+      /uniqueCount="\d+"/,
+      `uniqueCount="${newUnique}"`
+    )
+
+  // Insert new entries before </sst>
+  result = result.replace('</sst>', `${newEntries}</sst>`)
+
+  return result
+}
+
+/**
+ * Collect all unique strings that need to be added to shared strings.
+ * Returns a map: string value → shared string index (starting after existing ones).
+ */
+function collectMenuStrings(
+  menu: TranslatedMenu,
+  existingStrings: string[]
+): Map<string, number> {
+  const existingSet = new Set(existingStrings)
+  const newStrings = new Map<string, number>()
+  let nextIndex = existingStrings.length
+
+  function addString(value: string): void {
+    if (existingSet.has(value)) return
+    if (newStrings.has(value)) return
+    newStrings.set(value, nextIndex++)
+    existingSet.add(value)
+  }
+
+  // Day names and category headers
+  for (const day of DAYS_OF_WEEK) {
+    addString(day)
+  }
+  for (const header of Object.values(TEMPLATE_CATEGORY_HEADERS)) {
+    addString(header)
+  }
+
+  // All dish strings
+  for (const day of DAYS_OF_WEEK) {
+    for (const category of MEAL_CATEGORIES) {
+      for (const dish of menu[day][category]) {
+        addString(dish)
+      }
+    }
+  }
+
+  return newStrings
+}
+
+/**
+ * Get the shared string index for a value.
+ * Looks up in both existing strings and new strings map.
+ */
+function getStringIndex(
+  value: string,
+  existingStrings: string[],
+  newStringsMap: Map<string, number>
+): number {
+  const existingIdx = existingStrings.indexOf(value)
+  if (existingIdx !== -1) return existingIdx
+  const newIdx = newStringsMap.get(value)
+  if (newIdx !== undefined) return newIdx
+  throw new Error(`String not found in shared strings: "${value}"`)
+}
+
+interface CellToWrite {
+  row: number
+  col: number
+  sharedStringIndex: number
+}
+
+/**
+ * Build list of cells to write into the Tech sheet.
+ */
+function buildTechCells(
+  menu: TranslatedMenu,
+  existingStrings: string[],
+  newStringsMap: Map<string, number>
+): CellToWrite[] {
+  const cells: CellToWrite[] = []
   let currentRow = 0
+
+  function idx(value: string): number {
+    return getStringIndex(value, existingStrings, newStringsMap)
+  }
 
   for (let dayIdx = 0; dayIdx < DAYS_OF_WEEK.length; dayIdx++) {
     const day = DAYS_OF_WEEK[dayIdx]!
     const dayMenu = menu[day]
 
     // Day header row: day name in G–L (cols 6–11)
-    for (let col = MEAL_COLUMN_MAP['Завтрак']; col <= MEAL_COLUMN_MAP['Десерт']; col++) {
-      const addr = XLSX.utils.encode_cell({ r: currentRow, c: col })
-      sheet[addr] = { t: 's', v: day }
+    for (
+      let col = MEAL_COLUMN_MAP['Завтрак'];
+      col <= MEAL_COLUMN_MAP['Десерт'];
+      col++
+    ) {
+      cells.push({ row: currentRow, col, sharedStringIndex: idx(day) })
     }
     currentRow++
 
     // Category header row
     const isMonday = dayIdx === 0
     if (isMonday) {
-      const juiceAddr = XLSX.utils.encode_cell({
-        r: currentRow, c: MEAL_COLUMN_MAP['Сок'],
+      cells.push({
+        row: currentRow,
+        col: MEAL_COLUMN_MAP['Сок'],
+        sharedStringIndex: idx(TEMPLATE_CATEGORY_HEADERS['Сок']),
       })
-      sheet[juiceAddr] = { t: 's', v: TEMPLATE_CATEGORY_HEADERS['Сок'] }
     }
     for (const category of MEAL_CATEGORIES) {
       if (category === 'Сок') continue
-      const addr = XLSX.utils.encode_cell({
-        r: currentRow, c: MEAL_COLUMN_MAP[category],
+      cells.push({
+        row: currentRow,
+        col: MEAL_COLUMN_MAP[category],
+        sharedStringIndex: idx(TEMPLATE_CATEGORY_HEADERS[category]),
       })
-      sheet[addr] = { t: 's', v: TEMPLATE_CATEGORY_HEADERS[category] }
     }
     currentRow++
 
-    // Data rows: one dish per cell, vertically
+    // Data rows
     const categories = isMonday
       ? MEAL_CATEGORIES
       : MEAL_CATEGORIES.filter((cat) => cat !== 'Сок')
@@ -156,62 +313,303 @@ export function mergeMenuIntoTemplate(
       for (const category of categories) {
         const dishes = dayMenu[category]
         if (i < dishes.length) {
-          const addr = XLSX.utils.encode_cell({
-            r: currentRow, c: MEAL_COLUMN_MAP[category],
+          cells.push({
+            row: currentRow,
+            col: MEAL_COLUMN_MAP[category],
+            sharedStringIndex: idx(dishes[i]!),
           })
-          sheet[addr] = { t: 's', v: dishes[i] }
         }
       }
       currentRow++
     }
 
-    // Empty separator row between days (skip after last day)
+    // Separator row
     if (dayIdx < DAYS_OF_WEEK.length - 1) {
       currentRow++
     }
   }
 
-  // Expand sheet range to cover written columns
-  const maxCol = Math.max(
-    range.e.c,
-    ...Object.values(MEAL_COLUMN_MAP)
-  )
-  const maxRow = Math.max(range.e.r, currentRow - 1)
-  sheet['!ref'] = XLSX.utils.encode_range({
-    s: range.s,
-    e: { r: maxRow, c: maxCol },
-  })
-
-  // Clear previous selections on day sheets (C5:O60)
-  clearDaySheets(workbook)
-
-  const output = XLSX.write(workbook, {
-    bookType: 'xlsx',
-    type: 'array',
-  })
-
-  return output as ArrayBuffer
+  return cells
 }
 
 /**
- * Clears cells C5:O60 on each weekday sheet (Пн–Пт)
- * to remove previously filled employee selections.
+ * Insert cells into a sheet XML string.
+ * Groups cells by row, finds or creates <row> elements,
+ * and inserts/replaces <c> elements.
  */
-function clearDaySheets(workbook: XLSX.WorkBook): void {
-  const startRow = 4  // row 5 (0-indexed)
-  const endRow = 59   // row 60 (0-indexed)
-  const startCol = 2  // column C
-  const endCol = 14   // column O
-
-  for (const sheetName of DAY_SHEET_NAMES) {
-    const daySheet = workbook.Sheets[sheetName]
-    if (!daySheet) continue
-
-    for (let row = startRow; row <= endRow; row++) {
-      for (let col = startCol; col <= endCol; col++) {
-        const addr = XLSX.utils.encode_cell({ r: row, c: col })
-        delete daySheet[addr]
-      }
+function insertCellsIntoSheetXml(
+  sheetXml: string,
+  cells: CellToWrite[]
+): string {
+  // Group cells by row
+  const cellsByRow = new Map<number, CellToWrite[]>()
+  for (const cell of cells) {
+    const existing = cellsByRow.get(cell.row)
+    if (existing) {
+      existing.push(cell)
+    } else {
+      cellsByRow.set(cell.row, [cell])
     }
   }
+
+  // Parse existing rows from XML
+  const sheetDataStart = sheetXml.indexOf('<sheetData>')
+  const sheetDataEnd = sheetXml.indexOf('</sheetData>')
+
+  if (sheetDataStart === -1 || sheetDataEnd === -1) {
+    throw new Error('Invalid sheet XML: <sheetData> not found')
+  }
+
+  const beforeSheetData = sheetXml.substring(0, sheetDataStart + '<sheetData>'.length)
+  const afterSheetData = sheetXml.substring(sheetDataEnd)
+  const sheetDataContent = sheetXml.substring(
+    sheetDataStart + '<sheetData>'.length,
+    sheetDataEnd
+  )
+
+  // Parse rows: extract each <row ...>...</row> with its row number
+  const rows = new Map<number, string>()
+  const rowOrder: number[] = []
+  const rowRegex = /<row\s+r="(\d+)"[^>]*(?:\/>|>[\s\S]*?<\/row>)/g
+  let rowMatch: RegExpExecArray | null
+
+  while ((rowMatch = rowRegex.exec(sheetDataContent)) !== null) {
+    const rowNum = parseInt(rowMatch[1]!, 10)
+    rows.set(rowNum, rowMatch[0])
+    rowOrder.push(rowNum)
+  }
+
+  // For each row that needs modification, update or create it
+  for (const [rowIdx, rowCells] of cellsByRow) {
+    const rowNum = rowIdx + 1 // 1-based
+    const existingRow = rows.get(rowNum)
+
+    if (existingRow) {
+      // Modify existing row: remove old cells in our columns, add new ones
+      let updatedRow = existingRow
+
+      // Remove existing cells in our target columns
+      for (const cell of rowCells) {
+        const ref = cellRef(cell.row, cell.col)
+        // Match cell element: <c r="F1" .../> or <c r="F1" ...>...</c>
+        const cellPattern = new RegExp(
+          `<c\\s+r="${ref}"[^>]*(?:\\/>|>[\\s\\S]*?<\\/c>)`
+        )
+        updatedRow = updatedRow.replace(cellPattern, '')
+      }
+
+      // Build new cell XML fragments
+      const newCellXml = rowCells
+        .map((c) => `<c r="${cellRef(c.row, c.col)}" t="s"><v>${c.sharedStringIndex}</v></c>`)
+        .join('')
+
+      // Insert before </row>
+      if (updatedRow.includes('</row>')) {
+        updatedRow = updatedRow.replace('</row>', `${newCellXml}</row>`)
+      } else {
+        // Self-closing row tag — convert to open/close
+        updatedRow = updatedRow.replace('/>', `>${newCellXml}</row>`)
+      }
+
+      rows.set(rowNum, updatedRow)
+    } else {
+      // Create new row
+      const cellXml = rowCells
+        .map((c) => `<c r="${cellRef(c.row, c.col)}" t="s"><v>${c.sharedStringIndex}</v></c>`)
+        .join('')
+      rows.set(rowNum, `<row r="${rowNum}">${cellXml}</row>`)
+      rowOrder.push(rowNum)
+    }
+  }
+
+  // Sort rows by row number and rebuild sheetData
+  rowOrder.sort((a, b) => a - b)
+  const uniqueRows = [...new Set(rowOrder)]
+  const newSheetData = uniqueRows
+    .map((rowNum) => rows.get(rowNum)!)
+    .join('')
+
+  return `${beforeSheetData}${newSheetData}${afterSheetData}`
+}
+
+/**
+ * Clear cell values in range C5:O60 from a sheet XML,
+ * preserving cells that contain formulas.
+ */
+function clearCellsInRange(
+  sheetXml: string,
+  startRow: number,
+  endRow: number,
+  startCol: number,
+  endCol: number
+): string {
+  // Build set of cell refs to clear
+  const refsToClear = new Set<string>()
+  for (let row = startRow; row <= endRow; row++) {
+    for (let col = startCol; col <= endCol; col++) {
+      refsToClear.add(cellRef(row, col))
+    }
+  }
+
+  // Remove matching <c> elements that do NOT contain <f> (formulas)
+  return sheetXml.replace(
+    /<c\s+r="([A-Z]+\d+)"([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g,
+    (fullMatch, ref: string, _attrs: string, innerContent?: string) => {
+      if (!refsToClear.has(ref)) return fullMatch
+      // Preserve cells with formulas
+      if (innerContent && innerContent.includes('<f')) return fullMatch
+      return ''
+    }
+  )
+}
+
+/**
+ * Register sharedStrings.xml in rels and [Content_Types].xml
+ * when it doesn't exist in the original template.
+ */
+async function registerSharedStrings(
+  zip: JSZip,
+  relsXml: string
+): Promise<void> {
+  // Find next available rId
+  const rIdMatches = [...relsXml.matchAll(/Id="rId(\d+)"/g)]
+  const maxId = rIdMatches.reduce(
+    (max, m) => Math.max(max, parseInt(m[1]!, 10)), 0
+  )
+  const newRId = `rId${maxId + 1}`
+
+  // Add relationship
+  const newRel =
+    `<Relationship Id="${newRId}" ` +
+    `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" ` +
+    `Target="sharedStrings.xml"/>`
+  const updatedRels = relsXml.replace(
+    '</Relationships>',
+    `${newRel}\n</Relationships>`
+  )
+  zip.file('xl/_rels/workbook.xml.rels', updatedRels)
+
+  // Add content type
+  const ctFile = zip.file('[Content_Types].xml')
+  if (ctFile) {
+    const ct = await ctFile.async('string')
+    if (!ct.includes('sharedStrings')) {
+      const newOverride =
+        `<Override PartName="/xl/sharedStrings.xml" ` +
+        `ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>`
+      const updated = ct.replace('</Types>', `${newOverride}\n</Types>`)
+      zip.file('[Content_Types].xml', updated)
+    }
+  }
+}
+
+/**
+ * Resolve sheet XML filename from workbook.xml and rels.
+ */
+function resolveSheetFile(
+  workbookXml: string,
+  relsXml: string,
+  sheetName: string
+): string | null {
+  // Find rId for the sheet name
+  const escapedName = escapeXml(sheetName)
+  const sheetMatch = workbookXml.match(
+    new RegExp(`<sheet[^>]*name="${escapedName}"[^>]*r:id="(rId\\d+)"`)
+  )
+  if (!sheetMatch) return null
+
+  const rId = sheetMatch[1]!
+
+  // Find Target for this rId
+  const relMatch = relsXml.match(
+    new RegExp(`<Relationship[^>]*Id="${rId}"[^>]*Target="([^"]+)"`)
+  )
+  if (!relMatch) return null
+
+  return `xl/${relMatch[1]!}`
+}
+
+/**
+ * Merges translated menu into an xlsx template buffer.
+ * Uses ZIP/XML manipulation to preserve data validation,
+ * formulas, styles, and all other Excel features.
+ */
+export async function mergeMenuIntoTemplate(
+  templateBuffer: ArrayBuffer,
+  menu: TranslatedMenu
+): Promise<ArrayBuffer> {
+  const zip = await JSZip.loadAsync(templateBuffer)
+
+  // Read workbook structure
+  const workbookXml = await zip.file('xl/workbook.xml')!.async('string')
+  const relsXml = await zip.file('xl/_rels/workbook.xml.rels')!.async('string')
+
+  // Find Tech sheet file
+  const techSheetFile = resolveSheetFile(
+    workbookXml, relsXml, TECH_SHEET_NAME
+  )
+  if (!techSheetFile) {
+    throw new Error(
+      `Лист "${TECH_SHEET_NAME}" не найден в загруженном файле`
+    )
+  }
+
+  // Read and parse shared strings
+  const sharedStringsFile = zip.file('xl/sharedStrings.xml')
+  const sharedStringsXml = sharedStringsFile
+    ? await sharedStringsFile.async('string')
+    : ''
+  const existingStrings = sharedStringsFile
+    ? parseSharedStrings(sharedStringsXml)
+    : []
+
+  // Collect new strings needed for menu data
+  const newStringsMap = collectMenuStrings(menu, existingStrings)
+  const newStringValues = [...newStringsMap.entries()]
+    .sort((a, b) => a[1] - b[1])
+    .map((entry) => entry[0])
+
+  // Update shared strings XML
+  const updatedSharedStrings = rebuildSharedStrings(
+    sharedStringsXml, newStringValues
+  )
+  zip.file('xl/sharedStrings.xml', updatedSharedStrings)
+
+  // If sharedStrings.xml didn't exist, register it in rels and content types
+  if (!sharedStringsFile) {
+    await registerSharedStrings(zip, relsXml)
+  }
+
+  // Build cells for Tech sheet and insert into XML
+  const techCells = buildTechCells(menu, existingStrings, newStringsMap)
+  let techSheetXml = await zip.file(techSheetFile)!.async('string')
+  techSheetXml = insertCellsIntoSheetXml(techSheetXml, techCells)
+  zip.file(techSheetFile, techSheetXml)
+
+  // Clear C5:O60 on day sheets (preserve formulas and data validation)
+  for (const daySheetName of DAY_SHEET_NAMES) {
+    const daySheetFile = resolveSheetFile(
+      workbookXml, relsXml, daySheetName
+    )
+    if (!daySheetFile) continue
+
+    const zipEntry = zip.file(daySheetFile)
+    if (!zipEntry) continue
+
+    let daySheetXml = await zipEntry.async('string')
+    daySheetXml = clearCellsInRange(
+      daySheetXml,
+      4, 59,  // rows 5–60 (0-indexed: 4–59)
+      2, 14   // columns C–O (0-indexed: 2–14)
+    )
+    zip.file(daySheetFile, daySheetXml)
+  }
+
+  // Generate output
+  const output = await zip.generateAsync({
+    type: 'arraybuffer',
+    compression: 'DEFLATE',
+  })
+
+  return output
 }
