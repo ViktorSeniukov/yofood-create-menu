@@ -23,7 +23,9 @@ const SYSTEM_PROMPT = `Ты получаешь файл с меню корпор
 Если для какой-то категории в файле нет блюда — поставь пустой массив [].
 Если в категории несколько вариантов блюд — добавь все в массив.
 
-ВАЖНО: Верни ТОЛЬКО чистый JSON. Без \`\`\`json, без markdown, без пояснений до или после.
+ВАЖНО:
+- Верни ТОЛЬКО чистый JSON. Без \`\`\`json, без markdown, без пояснений до или после.
+- НИКОГДА не используй кавычки (", „, ") внутри значений строк. Если в оригинале есть кавычки — замени на « » или убери совсем.
 
 Пример формата:
 {
@@ -38,11 +40,36 @@ const SYSTEM_PROMPT = `Ты получаешь файл с меню корпор
   }
 }`
 
-/** Strip markdown code fences (```json ... ```) if present */
-function stripMarkdownCodeFence(text: string): string {
+/** Replace typographic quotes „..." that break JSON parsing with «...» */
+function sanitizeQuotes(text: string): string {
+  return text
+    .replace(/\u201E([^"]*?)"/g, '«$1»')
+    .replace(/\u201E([^"]*?)\u201C/g, '«$1»')
+}
+
+/** Extract JSON from Claude response: strip code fences, preamble text, etc. */
+function extractJson(text: string): string {
   const trimmed = text.trim()
-  const match = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/)
-  return match?.[1]?.trim() ?? trimmed
+
+  // Strip markdown code fences (```json ... ```)
+  const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
+  if (fenceMatch?.[1]) {
+    return sanitizeQuotes(fenceMatch[1].trim())
+  }
+
+  // If text starts with '{', it's already clean JSON
+  if (trimmed.startsWith('{')) {
+    return sanitizeQuotes(trimmed)
+  }
+
+  // Find the first '{' and last '}' to extract the JSON object
+  const firstBrace = trimmed.indexOf('{')
+  const lastBrace = trimmed.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return sanitizeQuotes(trimmed.slice(firstBrace, lastBrace + 1))
+  }
+
+  return sanitizeQuotes(trimmed)
 }
 
 function buildContentBlocks(text: string): ClaudeTextBlock[] {
@@ -161,7 +188,7 @@ export async function translateMenu(
 
   let parsed: unknown
   try {
-    parsed = JSON.parse(stripMarkdownCodeFence(responseText))
+    parsed = JSON.parse(extractJson(responseText))
   } catch {
     throw new Error('Claude вернул невалидный JSON')
   }

@@ -195,6 +195,46 @@ describe('translateMenu', () => {
       .rejects.toThrow('невалидный JSON')
   })
 
+  it('handles typographic quotes „..." in response', async () => {
+    const menuWithQuotes = JSON.stringify(validMenu)
+      .replace('Омлет / Omlet', 'Тефтели / Ćufte „Teftelji"')
+    // The closing " from „..." is ASCII and breaks JSON — sanitizer should fix it
+    const brokenJson = menuWithQuotes.replace(
+      '\u0022Teftelji\u0022',
+      '\u201ETeftelji\u0022'
+    )
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        id: 'msg_1',
+        content: [{ type: 'text', text: brokenJson }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 100, output_tokens: 200 },
+      }),
+    } as unknown as Response)
+
+    const result = await translateMenu('menu content', 'sk-test-key')
+    const monday = result['Понедельник']
+    expect(monday['Завтрак'][0]).toContain('«Teftelji»')
+  })
+
+  it('extracts JSON when Claude adds preamble text', async () => {
+    const preamble = 'Note: The file contains 7 days but only 5 weekdays.\n\n'
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        id: 'msg_1',
+        content: [{ type: 'text', text: preamble + JSON.stringify(validMenu) }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 100, output_tokens: 200 },
+      }),
+    } as unknown as Response)
+
+    const result = await translateMenu('menu content', 'sk-test-key')
+    expect(result).toEqual(validMenu)
+  })
+
   it('throws on empty response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,

@@ -10,7 +10,7 @@ import mockMenu from '@/fixtures/mockMenu.json'
 
 import type { TranslatedMenu } from '@/types/menu'
 
-const USE_MOCK = import.meta.env.DEV
+const USE_MOCK = false
 
 const SUPPORTED_EXTENSIONS = ['txt', 'docx']
 
