@@ -39,7 +39,7 @@ export function buildMenuWorkbook(
   let currentRow = 0
 
   for (let dayIdx = 0; dayIdx < DAYS_OF_WEEK.length; dayIdx++) {
-    const day = DAYS_OF_WEEK[dayIdx]
+    const day = DAYS_OF_WEEK[dayIdx]!
     const dayMenu = menu[day]
 
     // Day header row: day name in columns B–G (1–6)
@@ -76,10 +76,6 @@ export function buildMenuWorkbook(
       currentRow++
     }
 
-    // Empty separator row between days (skip after last day)
-    if (dayIdx < DAYS_OF_WEEK.length - 1) {
-      currentRow++
-    }
   }
 
   // Set sheet range
@@ -323,19 +319,27 @@ function buildTechCells(
       currentRow++
     }
 
-    // Separator row
-    if (dayIdx < DAYS_OF_WEEK.length - 1) {
-      currentRow++
-    }
   }
 
   return cells
 }
 
 /**
+ * Parse column letter(s) from a cell reference like "F1" → 5 (0-based).
+ */
+function colLetterToIndex(letters: string): number {
+  let index = 0
+  for (let i = 0; i < letters.length; i++) {
+    index = index * 26 + (letters.charCodeAt(i) - 64)
+  }
+  return index - 1
+}
+
+/**
  * Insert cells into a sheet XML string.
  * Groups cells by row, finds or creates <row> elements,
- * and inserts/replaces <c> elements.
+ * and merges <c> elements maintaining correct column order
+ * (required by Google Sheets).
  */
 function insertCellsIntoSheetXml(
   sheetXml: string,
@@ -360,7 +364,9 @@ function insertCellsIntoSheetXml(
     throw new Error('Invalid sheet XML: <sheetData> not found')
   }
 
-  const beforeSheetData = sheetXml.substring(0, sheetDataStart + '<sheetData>'.length)
+  const beforeSheetData = sheetXml.substring(
+    0, sheetDataStart + '<sheetData>'.length
+  )
   const afterSheetData = sheetXml.substring(sheetDataEnd)
   const sheetDataContent = sheetXml.substring(
     sheetDataStart + '<sheetData>'.length,
@@ -370,7 +376,7 @@ function insertCellsIntoSheetXml(
   // Parse rows: extract each <row ...>...</row> with its row number
   const rows = new Map<number, string>()
   const rowOrder: number[] = []
-  const rowRegex = /<row\s+r="(\d+)"[^>]*(?:\/>|>[\s\S]*?<\/row>)/g
+  const rowRegex = /<row\s+r="(\d+)"[^/>]*(?:\/>|>[\s\S]*?<\/row>)/g
   let rowMatch: RegExpExecArray | null
 
   while ((rowMatch = rowRegex.exec(sheetDataContent)) !== null) {
@@ -384,40 +390,94 @@ function insertCellsIntoSheetXml(
     const rowNum = rowIdx + 1 // 1-based
     const existingRow = rows.get(rowNum)
 
+    // Build map of new cells: ref → xml
+    const newCellMap = new Map<string, string>()
+    for (const c of rowCells) {
+      const ref = cellRef(c.row, c.col)
+      newCellMap.set(
+        ref,
+        `<c r="${ref}" t="s"><v>${c.sharedStringIndex}</v></c>`
+      )
+    }
+
     if (existingRow) {
-      // Modify existing row: remove old cells in our columns, add new ones
-      let updatedRow = existingRow
+      // Extract row opening tag (preserving attributes)
+      const rowOpenMatch = existingRow.match(
+        /^<row\s+[^>]*?(?=>|\/\s*>)/
+      )
+      const rowOpenTag = rowOpenMatch
+        ? `${rowOpenMatch[0]}>`
+        : `<row r="${rowNum}">`
 
-      // Remove existing cells in our target columns
-      for (const cell of rowCells) {
-        const ref = cellRef(cell.row, cell.col)
-        // Match cell element: <c r="F1" .../> or <c r="F1" ...>...</c>
-        const cellPattern = new RegExp(
-          `<c\\s+r="${ref}"[^>]*(?:\\/>|>[\\s\\S]*?<\\/c>)`
-        )
-        updatedRow = updatedRow.replace(cellPattern, '')
+      // Parse existing cells, keeping those not being replaced
+      const existingCells = new Map<string, string>()
+      const cellRegex =
+        /<c\s+r="([A-Z]+\d+)"[^/>]*(?:\/>|>[\s\S]*?<\/c>)/g
+      let cellMatch: RegExpExecArray | null
+      while (
+        (cellMatch = cellRegex.exec(existingRow)) !== null
+      ) {
+        existingCells.set(cellMatch[1]!, cellMatch[0])
       }
 
-      // Build new cell XML fragments
-      const newCellXml = rowCells
-        .map((c) => `<c r="${cellRef(c.row, c.col)}" t="s"><v>${c.sharedStringIndex}</v></c>`)
+      // Merge: new cells override existing ones
+      for (const [ref, xml] of newCellMap) {
+        existingCells.set(ref, xml)
+      }
+
+      // Sort all cells by column index
+      const sortedEntries = [...existingCells.entries()]
+        .sort((a, b) => {
+          const colA = colLetterToIndex(
+            a[0].replace(/\d+/g, '')
+          )
+          const colB = colLetterToIndex(
+            b[0].replace(/\d+/g, '')
+          )
+          return colA - colB
+        })
+      const sortedCells = sortedEntries
+        .map((entry) => entry[1])
         .join('')
 
-      // Insert before </row>
-      if (updatedRow.includes('</row>')) {
-        updatedRow = updatedRow.replace('</row>', `${newCellXml}</row>`)
-      } else {
-        // Self-closing row tag — convert to open/close
-        updatedRow = updatedRow.replace('/>', `>${newCellXml}</row>`)
-      }
+      // Update spans to cover all columns in this row
+      const colIndices = sortedEntries.map((e) =>
+        colLetterToIndex(e[0].replace(/\d+/g, '')) + 1
+      )
+      const minCol = Math.min(...colIndices)
+      const maxCol = Math.max(...colIndices)
+      let updatedRowTag = rowOpenTag.replace(
+        /\s+spans="[^"]*"/, ''
+      )
+      updatedRowTag = updatedRowTag.replace(
+        />$/, ` spans="${minCol}:${maxCol}">`
+      )
 
-      rows.set(rowNum, updatedRow)
+      rows.set(rowNum, `${updatedRowTag}${sortedCells}</row>`)
     } else {
-      // Create new row
-      const cellXml = rowCells
-        .map((c) => `<c r="${cellRef(c.row, c.col)}" t="s"><v>${c.sharedStringIndex}</v></c>`)
+      // Create new row with cells in column order
+      const sortedNewEntries = [...newCellMap.entries()]
+        .sort((a, b) => {
+          const colA = colLetterToIndex(
+            a[0].replace(/\d+/g, '')
+          )
+          const colB = colLetterToIndex(
+            b[0].replace(/\d+/g, '')
+          )
+          return colA - colB
+        })
+      const sortedCells = sortedNewEntries
+        .map((entry) => entry[1])
         .join('')
-      rows.set(rowNum, `<row r="${rowNum}">${cellXml}</row>`)
+      const newColIndices = sortedNewEntries.map((e) =>
+        colLetterToIndex(e[0].replace(/\d+/g, '')) + 1
+      )
+      const newMinCol = Math.min(...newColIndices)
+      const newMaxCol = Math.max(...newColIndices)
+      rows.set(
+        rowNum,
+        `<row r="${rowNum}" spans="${newMinCol}:${newMaxCol}">${sortedCells}</row>`
+      )
       rowOrder.push(rowNum)
     }
   }
@@ -429,7 +489,31 @@ function insertCellsIntoSheetXml(
     .map((rowNum) => rows.get(rowNum)!)
     .join('')
 
-  return `${beforeSheetData}${newSheetData}${afterSheetData}`
+  let result = `${beforeSheetData}${newSheetData}${afterSheetData}`
+
+  // Update <dimension> to cover all rows and columns
+  const allRowNums = uniqueRows
+  if (allRowNums.length > 0) {
+    const maxRowNum = Math.max(...allRowNums)
+    // Find max column across all rows
+    let globalMaxCol = 0
+    for (const rowNum of allRowNums) {
+      const rowXml = rows.get(rowNum)!
+      const cellRefs =
+        [...rowXml.matchAll(/<c\s+r="([A-Z]+)\d+"/g)]
+      for (const m of cellRefs) {
+        const colIdx = colLetterToIndex(m[1]!)
+        if (colIdx > globalMaxCol) globalMaxCol = colIdx
+      }
+    }
+    const maxColLetter = colIndexToLetter(globalMaxCol)
+    result = result.replace(
+      /<dimension\s+ref="[^"]*"\s*\/>/,
+      `<dimension ref="A1:${maxColLetter}${maxRowNum}"/>`
+    )
+  }
+
+  return result
 }
 
 /**
@@ -453,7 +537,7 @@ function clearCellsInRange(
 
   // Remove matching <c> elements that do NOT contain <f> (formulas)
   return sheetXml.replace(
-    /<c\s+r="([A-Z]+\d+)"([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g,
+    /<c\s+r="([A-Z]+\d+)"([^/>]*)(?:\/>|>([\s\S]*?)<\/c>)/g,
     (fullMatch, ref: string, _attrs: string, innerContent?: string) => {
       if (!refsToClear.has(ref)) return fullMatch
       // Preserve cells with formulas
