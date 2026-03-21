@@ -516,8 +516,20 @@ function insertCellsIntoSheetXml(
   return result
 }
 
+/** Find the last row number (0-indexed) that contains cells in the sheet XML */
+function detectLastRow(sheetXml: string): number {
+  let maxRow = 0
+  const rowRegex = /<row\s[^>]*r="(\d+)"/g
+  let match
+  while ((match = rowRegex.exec(sheetXml)) !== null) {
+    const rowNum = parseInt(match[1]!, 10)
+    if (rowNum > maxRow) maxRow = rowNum
+  }
+  return maxRow - 1 // convert to 0-indexed
+}
+
 /**
- * Clear cell values in range C5:O60 from a sheet XML,
+ * Clear cell values in a range from a sheet XML,
  * preserving cells that contain formulas.
  */
 function clearCellsInRange(
@@ -675,7 +687,7 @@ export async function mergeMenuIntoTemplate(
   techSheetXml = insertCellsIntoSheetXml(techSheetXml, techCells)
   zip.file(techSheetFile, techSheetXml)
 
-  // Clear C5:O60 on day sheets (preserve formulas and data validation)
+  // Clear C5:O{last row} on day sheets (preserve formulas and data validation)
   for (const daySheetName of DAY_SHEET_NAMES) {
     const daySheetFile = resolveSheetFile(
       workbookXml, relsXml, daySheetName
@@ -686,10 +698,11 @@ export async function mergeMenuIntoTemplate(
     if (!zipEntry) continue
 
     let daySheetXml = await zipEntry.async('string')
+    const lastRow = detectLastRow(daySheetXml)
     daySheetXml = clearCellsInRange(
       daySheetXml,
-      4, 59,  // rows 5–60 (0-indexed: 4–59)
-      2, 14   // columns C–O (0-indexed: 2–14)
+      4, Math.max(4, lastRow),  // rows 5 to last row (0-indexed)
+      2, 14                     // columns C–O (0-indexed: 2–14)
     )
     zip.file(daySheetFile, daySheetXml)
   }
