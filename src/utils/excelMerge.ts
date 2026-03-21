@@ -535,13 +535,18 @@ function clearCellsInRange(
     }
   }
 
-  // Remove matching <c> elements that do NOT contain <f> (formulas)
+  // Clear values but preserve cell style (borders, fills, fonts)
   return sheetXml.replace(
     /<c\s+r="([A-Z]+\d+)"([^/>]*)(?:\/>|>([\s\S]*?)<\/c>)/g,
-    (fullMatch, ref: string, _attrs: string, innerContent?: string) => {
+    (fullMatch, ref: string, attrs: string, innerContent?: string) => {
       if (!refsToClear.has(ref)) return fullMatch
       // Preserve cells with formulas
       if (innerContent && innerContent.includes('<f')) return fullMatch
+      // Keep cell with its style attribute, just remove value
+      const styleMatch = attrs.match(/\s+s="(\d+)"/)
+      if (styleMatch) {
+        return `<c r="${ref}" s="${styleMatch[1]}"/>`
+      }
       return ''
     }
   )
