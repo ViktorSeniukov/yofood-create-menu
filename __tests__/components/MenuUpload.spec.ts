@@ -14,11 +14,15 @@ function createMockComposable(overrides: {
   translatedMenu?: Ref<TranslatedMenu | null>
   isLoading?: Ref<boolean>
   error?: Ref<string | null>
+  fileName?: Ref<string>
+  isFromCache?: Ref<boolean>
 } = {}): ReturnType<typeof useMenuTranslationModule.useMenuTranslation> {
   return {
     translatedMenu: overrides.translatedMenu ?? ref(null),
     isLoading: overrides.isLoading ?? ref(false),
     error: overrides.error ?? ref(null),
+    fileName: overrides.fileName ?? ref(''),
+    isFromCache: overrides.isFromCache ?? ref(false),
     translateFile: vi.fn(),
     reset: vi.fn(),
   }
@@ -33,13 +37,16 @@ describe('MenuUpload', () => {
     expect(wrapper.text()).toContain('Перетащите файл')
   })
 
-  it('shows spinner when loading', () => {
-    const mock = createMockComposable({ isLoading: ref(true) })
+  it('shows loading status in file row when translating', () => {
+    const mock = createMockComposable({
+      isLoading: ref(true),
+      fileName: ref('menu.txt'),
+    })
     vi.mocked(useMenuTranslationModule.useMenuTranslation).mockReturnValue(mock)
 
     const wrapper = mount(MenuUpload)
-    expect(wrapper.find('.ant-spin').exists()).toBe(true)
-    expect(wrapper.find('.menu-upload__overlay').exists()).toBe(true)
+    expect(wrapper.find('.menu-upload__file-status').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Переводим меню')
   })
 
   it('shows error alert when error occurs', () => {

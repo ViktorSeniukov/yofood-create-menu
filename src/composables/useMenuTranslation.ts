@@ -14,16 +14,30 @@ const USE_MOCK = false
 
 const SUPPORTED_EXTENSIONS = ['txt', 'docx']
 
-const translatedMenu = ref<TranslatedMenu | null>(null)
+const LS_MENU_KEY = 'translated_menu'
+const LS_FILE_KEY = 'translated_menu_file'
+
+function loadCachedMenu(): TranslatedMenu | null {
+  try {
+    const raw = localStorage.getItem(LS_MENU_KEY)
+    return raw ? JSON.parse(raw) as TranslatedMenu : null
+  } catch {
+    return null
+  }
+}
+
+const translatedMenu = ref<TranslatedMenu | null>(loadCachedMenu())
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-const fileName = ref('')
+const fileName = ref(localStorage.getItem(LS_FILE_KEY) ?? '')
+const isFromCache = ref(translatedMenu.value !== null)
 
 export function useMenuTranslation(): {
   translatedMenu: Ref<TranslatedMenu | null>
   isLoading: Ref<boolean>
   error: Ref<string | null>
   fileName: Ref<string>
+  isFromCache: Ref<boolean>
   translateFile: (file: File) => Promise<void>
   reset: () => void
 } {
@@ -65,7 +79,11 @@ export function useMenuTranslation(): {
 
     try {
       const text = await extractText(file)
-      translatedMenu.value = await translateMenu(text, apiKey.value)
+      const result = await translateMenu(text, apiKey.value)
+      translatedMenu.value = result
+      isFromCache.value = false
+      localStorage.setItem(LS_MENU_KEY, JSON.stringify(result))
+      localStorage.setItem(LS_FILE_KEY, file.name)
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Неизвестная ошибка'
@@ -80,7 +98,13 @@ export function useMenuTranslation(): {
     isLoading.value = false
     error.value = null
     fileName.value = ''
+    isFromCache.value = false
+    localStorage.removeItem(LS_MENU_KEY)
+    localStorage.removeItem(LS_FILE_KEY)
   }
 
-  return { translatedMenu, isLoading, error, fileName, translateFile, reset }
+  return {
+    translatedMenu, isLoading, error, fileName,
+    isFromCache, translateFile, reset,
+  }
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useMenuTranslation } from '@/composables/useMenuTranslation'
+import { useApiKey } from '@/composables/useApiKey'
 import * as claudeService from '@/services/claudeService'
 import { LOCAL_STORAGE_API_KEY } from '@/constants/menu'
 import type { TranslatedMenu } from '@/types/menu'
@@ -39,6 +40,10 @@ describe('useMenuTranslation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    const { reset } = useMenuTranslation()
+    const { clearApiKey } = useApiKey()
+    reset()
+    clearApiKey()
   })
 
   it('sets error when API key is not set', async () => {
@@ -51,7 +56,7 @@ describe('useMenuTranslation', () => {
   })
 
   it('sets isLoading during translation and clears after', async () => {
-    localStorage.setItem(LOCAL_STORAGE_API_KEY, 'sk-test')
+    useApiKey().saveApiKey('sk-test')
     vi.mocked(claudeService.translateMenu).mockResolvedValue(mockMenu)
 
     const { isLoading, translateFile } = useMenuTranslation()
@@ -65,7 +70,7 @@ describe('useMenuTranslation', () => {
   })
 
   it('populates translatedMenu on success', async () => {
-    localStorage.setItem(LOCAL_STORAGE_API_KEY, 'sk-test')
+    useApiKey().saveApiKey('sk-test')
     vi.mocked(claudeService.translateMenu).mockResolvedValue(mockMenu)
 
     const { translatedMenu, translateFile } = useMenuTranslation()
@@ -77,7 +82,7 @@ describe('useMenuTranslation', () => {
   })
 
   it('sets error on service failure', async () => {
-    localStorage.setItem(LOCAL_STORAGE_API_KEY, 'sk-test')
+    useApiKey().saveApiKey('sk-test')
     vi.mocked(claudeService.translateMenu).mockRejectedValue(
       new Error('Неверный API-ключ')
     )
@@ -91,7 +96,7 @@ describe('useMenuTranslation', () => {
   })
 
   it('resets state correctly', async () => {
-    localStorage.setItem(LOCAL_STORAGE_API_KEY, 'sk-test')
+    useApiKey().saveApiKey('sk-test')
     vi.mocked(claudeService.translateMenu).mockResolvedValue(mockMenu)
 
     const { translatedMenu, error, reset, translateFile } = useMenuTranslation()

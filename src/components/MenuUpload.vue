@@ -18,6 +18,7 @@ const {
   isLoading,
   error,
   fileName,
+  isFromCache,
   translateFile,
   reset,
 } = useMenuTranslation()
@@ -52,18 +53,21 @@ function handleChange(info: UploadChangeParam): void {
     <template #title>Меню от кейтеринга</template>
 
     <div class="menu-upload__body">
-      <!-- Loading overlay -->
-      <div v-if="isLoading" class="menu-upload__overlay">
-        <Spin />
-      </div>
-
-      <!-- File uploaded state -->
+      <!-- File uploaded / loading state -->
       <template v-if="translatedMenu || error || fileName">
         <div
           class="menu-upload__file-row"
           :style="{ background: token.colorBgLayout }"
         >
           <div
+            v-if="isLoading"
+            class="menu-upload__file-icon"
+            :style="{ background: token.colorPrimaryBg }"
+          >
+            <Spin :indicator="null" size="small" />
+          </div>
+          <div
+            v-else
             class="menu-upload__file-icon"
             :style="{ background: token.colorSuccessBg }"
           >
@@ -74,9 +78,17 @@ function handleChange(info: UploadChangeParam): void {
           <div class="menu-upload__file-info">
             <span class="menu-upload__file-name">{{ fileName }}</span>
             <span
-              v-if="menuStats"
+              v-if="isLoading"
+              class="menu-upload__file-status"
+              :style="{ color: token.colorPrimary }"
+            >
+              Переводим меню…
+            </span>
+            <span
+              v-else-if="menuStats"
               class="menu-upload__file-meta"
             >
+              <template v-if="isFromCache">Из кеша · </template>
               Загружено · {{ menuStats.days }} дней ·
               {{ menuStats.dishes }} блюд
             </span>
@@ -134,17 +146,6 @@ function handleChange(info: UploadChangeParam): void {
   position: relative;
 }
 
-.menu-upload__overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.7);
-  z-index: 1;
-  border-radius: 8px;
-}
-
 .menu-upload__file-row {
   display: flex;
   align-items: center;
@@ -181,6 +182,11 @@ function handleChange(info: UploadChangeParam): void {
 .menu-upload__file-meta {
   font-size: 11px;
   color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.menu-upload__file-status {
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .menu-upload__file-reset {

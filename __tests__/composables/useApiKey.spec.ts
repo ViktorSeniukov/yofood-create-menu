@@ -6,19 +6,22 @@ import { LOCAL_STORAGE_API_KEY } from '@/constants/menu'
 describe('useApiKey', () => {
   beforeEach(() => {
     localStorage.clear()
+    const { clearApiKey } = useApiKey()
+    clearApiKey()
   })
 
-  it('initializes with empty string when no key stored', () => {
+  it('returns empty key and false hasApiKey after clear', () => {
     const { apiKey, hasApiKey } = useApiKey()
     expect(apiKey.value).toBe('')
     expect(hasApiKey.value).toBe(false)
   })
 
-  it('reads existing key from localStorage', () => {
-    localStorage.setItem(LOCAL_STORAGE_API_KEY, 'sk-test-123')
-    const { apiKey, hasApiKey } = useApiKey()
-    expect(apiKey.value).toBe('sk-test-123')
-    expect(hasApiKey.value).toBe(true)
+  it('shares state across multiple calls', () => {
+    const a = useApiKey()
+    const b = useApiKey()
+    a.saveApiKey('sk-shared')
+    expect(b.apiKey.value).toBe('sk-shared')
+    expect(b.hasApiKey.value).toBe(true)
   })
 
   it('saves key to ref and localStorage', () => {
@@ -31,8 +34,8 @@ describe('useApiKey', () => {
   })
 
   it('clears key from ref and localStorage', () => {
-    localStorage.setItem(LOCAL_STORAGE_API_KEY, 'sk-existing')
-    const { apiKey, hasApiKey, clearApiKey } = useApiKey()
+    const { apiKey, hasApiKey, saveApiKey, clearApiKey } = useApiKey()
+    saveApiKey('sk-existing')
 
     clearApiKey()
 

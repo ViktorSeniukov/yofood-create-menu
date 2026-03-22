@@ -6,6 +6,7 @@ import { theme } from 'ant-design-vue'
 import { useApiKey } from '@/composables/useApiKey'
 
 import AppSettings from './AppSettings.vue'
+import mascotUrl from '@/assets/mascot.png'
 
 const { hasApiKey } = useApiKey()
 const { token } = theme.useToken()
@@ -14,7 +15,14 @@ const isSettingsOpen = ref(false)
 
 <template>
   <header class="app-header">
-    <span class="app-header__title">Меню-генератор</span>
+    <div class="app-header__brand">
+      <img
+        :src="mascotUrl"
+        alt="YoFood"
+        class="app-header__logo"
+      />
+      <span class="app-header__title">Меню-генератор</span>
+    </div>
     <button
       class="app-header__api-btn"
       data-testid="settings-btn"
@@ -44,6 +52,18 @@ const isSettingsOpen = ref(false)
   padding: 0 20px;
   background: #fff;
   border-bottom: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header__logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
 }
 
 .app-header__title {
