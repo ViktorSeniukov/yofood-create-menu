@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useMenuTranslation } from '@/composables/useMenuTranslation'
 import { useApiKey } from '@/composables/useApiKey'
 import * as claudeService from '@/services/claudeService'
-import { LOCAL_STORAGE_API_KEY } from '@/constants/menu'
 import type { TranslatedMenu } from '@/types/menu'
 
 vi.mock('@/services/claudeService')
