@@ -1,6 +1,6 @@
 # Code Style Guide — Vue 3 + TypeScript
 
-> Версия 1.1 | Руководство для Claude при написании кода проекта
+> Версия 1.2 | Руководство для Claude при написании кода проекта
 
 ---
 
@@ -746,7 +746,98 @@ import type { User } from '@/types/user'
 
 ---
 
-## 14. Что запрещено
+## 14. CI / Проверки перед мержем в master
+
+Пуш и мерж в ветку `master` **запрещены без прохождения** трёх обязательных проверок: линтер, тайпчек и тесты. Все три запускаются автоматически в CI и должны завершаться с кодом `0`.
+
+### 14.1 Обязательные проверки
+
+| Проверка | Команда | Что проверяет |
+|----------|---------|---------------|
+| Линтер | `npm run lint` | Стиль кода, ESLint-правила, vue-specific правила |
+| Тайпчек | `npm run type-check` | Корректность TypeScript без компиляции (`vue-tsc --noEmit`) |
+| Тесты | `npm run test` | Все юнит-тесты через Vitest |
+
+### 14.2 Конфигурация CI (GitHub Actions)
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Test
+        run: npm run test
+```
+
+### 14.3 Скрипты в `package.json`
+
+```json
+{
+  "scripts": {
+    "lint": "eslint . --ext .vue,.ts,.tsx --max-warnings 0",
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
+```
+
+- `--max-warnings 0` — предупреждения ESLint трактуются как ошибки, CI падает
+- `vue-tsc --noEmit` — тайпчек включает `.vue` файлы, не только `.ts`
+- `vitest run` — однократный запуск без watch-режима, подходит для CI
+
+### 14.4 Локальная проверка перед пушем
+
+Перед пушем в `master` (или открытием PR) обязательно запустить все три проверки локально:
+
+```bash
+npm run lint && npm run type-check && npm run test
+```
+
+Для автоматизации можно настроить `pre-push` хук через **Husky**:
+
+```bash
+npx husky init
+echo "npm run lint && npm run type-check && npm run test" > .husky/pre-push
+```
+
+### 14.5 Правила
+
+- ❌ Мержить в `master` при красном CI — запрещено
+- ❌ Отключать или пропускать проверки через `--no-verify` или `skipCI` — запрещено
+- ❌ Коммитить код с `@ts-ignore` / `@ts-expect-error` без объяснительного комментария рядом
+- ✅ Все три проверки зелёные — обязательное условие для мержа
+- ✅ PR в `master` защищён branch protection rule: требует прохождения CI
+
+---
+
+## 15. Что запрещено
 
 - ❌ `any` — использовать `unknown` или конкретный тип
 - ❌ `Options API` — только Composition API + `<script setup>`
@@ -759,10 +850,11 @@ import type { User } from '@/types/user'
 - ❌ Переопределение стилей Ant Design через CSS (только через токены темы)
 - ❌ Несколько файлов с роутами — все роуты только в `router/routes.ts`
 - ❌ `data-testid` в CSS-селекторах — только для тестов
+- ❌ Мержить в `master` при красном CI — см. раздел 14
 
 ---
 
-## 15. Пример полного компонента
+## 16. Пример полного компонента
 
 ```vue
 <script setup lang="ts">
