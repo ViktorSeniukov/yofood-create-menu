@@ -1,26 +1,27 @@
 <script setup lang="ts">
-import { Layout } from 'ant-design-vue'
-
 import AppHeader from '@/components/common/AppHeader.vue'
 </script>
 
 <template>
-  <Layout class="default-layout">
-    <Layout.Content class="default-layout__content">
-      <AppHeader />
+  <div class="app-layout">
+    <AppHeader />
+    <main class="app-layout__main">
       <RouterView />
-    </Layout.Content>
-  </Layout>
+    </main>
+  </div>
 </template>
 
 <style scoped>
-.default-layout {
-  min-height: 100vh;
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 16px);
+  overflow: hidden;
 }
 
-.default-layout__content {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 24px;
+.app-layout__main {
+  flex: 1;
+  overflow: hidden;
+  padding: 16px;
 }
 </style>

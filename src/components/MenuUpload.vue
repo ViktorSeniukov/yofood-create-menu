@@ -1,14 +1,43 @@
 <script setup lang="ts">
-import { UploadDragger, Alert, Spin } from 'ant-design-vue'
-import { InboxOutlined } from '@ant-design/icons-vue'
+import { computed } from 'vue'
+
+import {
+  CheckOutlined,
+  CloseOutlined,
+  UploadOutlined,
+} from '@ant-design/icons-vue'
+import { Alert, Card, Spin, UploadDragger, theme } from 'ant-design-vue'
 import type { UploadChangeParam } from 'ant-design-vue'
 
 import { useMenuTranslation } from '@/composables/useMenuTranslation'
 
-import MenuPreview from './MenuPreview.vue'
+import { DAYS_OF_WEEK, MEAL_CATEGORIES } from '@/constants/menu'
 
-const { translatedMenu, isLoading, error, translateFile, reset } =
-  useMenuTranslation()
+const {
+  translatedMenu,
+  isLoading,
+  error,
+  fileName,
+  translateFile,
+  reset,
+} = useMenuTranslation()
+
+const { token } = theme.useToken()
+
+const menuStats = computed(() => {
+  if (!translatedMenu.value) return null
+  const days = DAYS_OF_WEEK.filter((day) => {
+    const dayMenu = translatedMenu.value![day]
+    return MEAL_CATEGORIES.some((cat) => dayMenu[cat].length > 0)
+  })
+  const dishes = DAYS_OF_WEEK.reduce((sum, day) => {
+    const dayMenu = translatedMenu.value![day]
+    return sum + MEAL_CATEGORIES.reduce(
+      (s, cat) => s + dayMenu[cat].length, 0
+    )
+  }, 0)
+  return { days: days.length, dishes }
+})
 
 function handleChange(info: UploadChangeParam): void {
   const file = info.file.originFileObj ?? info.file
@@ -19,63 +48,187 @@ function handleChange(info: UploadChangeParam): void {
 </script>
 
 <template>
-  <div class="menu-upload">
-    <template v-if="isLoading">
-      <div class="menu-upload__loading">
-        <Spin size="large" tip="Переводим меню..." />
+  <Card class="menu-upload">
+    <template #title>Меню от кейтеринга</template>
+
+    <div class="menu-upload__body">
+      <!-- Loading overlay -->
+      <div v-if="isLoading" class="menu-upload__overlay">
+        <Spin />
       </div>
-    </template>
 
-    <template v-else-if="error">
-      <Alert
-        type="error"
-        :message="error"
-        show-icon
-        closable
-        @close="reset"
-      />
-    </template>
+      <!-- File uploaded state -->
+      <template v-if="translatedMenu || error || fileName">
+        <div
+          class="menu-upload__file-row"
+          :style="{ background: token.colorBgLayout }"
+        >
+          <div
+            class="menu-upload__file-icon"
+            :style="{ background: token.colorSuccessBg }"
+          >
+            <CheckOutlined
+              :style="{ color: token.colorSuccess, fontSize: '14px' }"
+            />
+          </div>
+          <div class="menu-upload__file-info">
+            <span class="menu-upload__file-name">{{ fileName }}</span>
+            <span
+              v-if="menuStats"
+              class="menu-upload__file-meta"
+            >
+              Загружено · {{ menuStats.days }} дней ·
+              {{ menuStats.dishes }} блюд
+            </span>
+          </div>
+          <button
+            class="menu-upload__file-reset"
+            @click="reset"
+          >
+            <CloseOutlined />
+          </button>
+        </div>
 
-    <template v-else-if="translatedMenu">
-      <MenuPreview :menu="translatedMenu" />
-      <a class="menu-upload__reset" @click="reset">
-        Загрузить другой файл
-      </a>
-    </template>
+        <Alert
+          v-if="error"
+          type="error"
+          :message="error"
+          show-icon
+          class="menu-upload__error"
+        />
+      </template>
 
-    <template v-else>
-      <UploadDragger
-        accept=".txt,.docx"
-        :max-count="1"
-        :before-upload="() => false"
-        :show-upload-list="false"
-        @change="handleChange"
-      >
-        <p class="ant-upload-drag-icon">
-          <InboxOutlined />
-        </p>
-        <p class="ant-upload-text">
-          Перетащите файл меню сюда
-        </p>
-        <p class="ant-upload-hint">
-          Поддерживаются форматы .txt и .docx
-        </p>
-      </UploadDragger>
-    </template>
-  </div>
+      <!-- Upload dragger -->
+      <template v-else>
+        <UploadDragger
+          accept=".txt,.docx"
+          :max-count="1"
+          :before-upload="() => false"
+          :show-upload-list="false"
+          @change="handleChange"
+        >
+          <div class="menu-upload__dragger">
+            <div
+              class="menu-upload__dragger-icon"
+              :style="{ background: token.colorBgLayout }"
+            >
+              <UploadOutlined style="font-size: 14px" />
+            </div>
+            <p class="menu-upload__dragger-text">
+              <strong>Перетащите файл</strong> или нажмите
+            </p>
+            <p class="menu-upload__dragger-hint">.txt или .docx</p>
+          </div>
+        </UploadDragger>
+      </template>
+    </div>
+  </Card>
 </template>
 
 <style scoped>
-.menu-upload__loading {
-  display: flex;
-  justify-content: center;
-  padding: 48px 0;
+.menu-upload {
+  flex-shrink: 0;
 }
 
-.menu-upload__reset {
-  display: block;
-  margin-top: 12px;
-  text-align: center;
+.menu-upload__body {
+  position: relative;
+}
+
+.menu-upload__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 1;
+  border-radius: 8px;
+}
+
+.menu-upload__file-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.menu-upload__file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.menu-upload__file-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-upload__file-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-upload__file-meta {
+  font-size: 11px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.menu-upload__file-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
   cursor: pointer;
+  opacity: 0.35;
+  padding: 4px;
+  font-size: 12px;
+  transition: opacity 0.2s;
+}
+
+.menu-upload__file-reset:hover {
+  opacity: 1;
+}
+
+.menu-upload__error {
+  margin-top: 8px;
+}
+
+.menu-upload__dragger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.menu-upload__dragger-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+.menu-upload__dragger-text {
+  margin: 0;
+  font-size: 12px;
+}
+
+.menu-upload__dragger-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
 }
 </style>

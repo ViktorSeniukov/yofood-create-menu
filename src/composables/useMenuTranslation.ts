@@ -17,11 +17,13 @@ const SUPPORTED_EXTENSIONS = ['txt', 'docx']
 const translatedMenu = ref<TranslatedMenu | null>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
+const fileName = ref('')
 
 export function useMenuTranslation(): {
   translatedMenu: Ref<TranslatedMenu | null>
   isLoading: Ref<boolean>
   error: Ref<string | null>
+  fileName: Ref<string>
   translateFile: (file: File) => Promise<void>
   reset: () => void
 } {
@@ -59,6 +61,7 @@ export function useMenuTranslation(): {
     isLoading.value = true
     error.value = null
     translatedMenu.value = null
+    fileName.value = file.name
 
     try {
       const text = await extractText(file)
@@ -76,7 +79,8 @@ export function useMenuTranslation(): {
     translatedMenu.value = null
     isLoading.value = false
     error.value = null
+    fileName.value = ''
   }
 
-  return { translatedMenu, isLoading, error, translateFile, reset }
+  return { translatedMenu, isLoading, error, fileName, translateFile, reset }
 }
