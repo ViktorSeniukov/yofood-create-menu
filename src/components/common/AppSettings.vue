@@ -48,6 +48,7 @@ function handleSave(): void {
       <InputPassword
         v-model:value="localKey"
         placeholder="sk-ant-api03-..."
+        autocomplete="off"
         data-testid="api-key-input"
       />
       <p class="api-drawer__hint">
