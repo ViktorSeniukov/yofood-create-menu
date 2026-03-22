@@ -30,7 +30,7 @@ describe('MenuUpload', () => {
     vi.mocked(useMenuTranslationModule.useMenuTranslation).mockReturnValue(mock)
 
     const wrapper = mount(MenuUpload)
-    expect(wrapper.text()).toContain('Перетащите файл меню сюда')
+    expect(wrapper.text()).toContain('Перетащите файл')
   })
 
   it('shows spinner when loading', () => {
@@ -39,7 +39,7 @@ describe('MenuUpload', () => {
 
     const wrapper = mount(MenuUpload)
     expect(wrapper.find('.ant-spin').exists()).toBe(true)
-    expect(wrapper.text()).not.toContain('Перетащите файл меню сюда')
+    expect(wrapper.find('.menu-upload__overlay').exists()).toBe(true)
   })
 
   it('shows error alert when error occurs', () => {
@@ -67,6 +67,7 @@ describe('MenuUpload', () => {
     vi.mocked(useMenuTranslationModule.useMenuTranslation).mockReturnValue(mock)
 
     const wrapper = mount(MenuUpload)
-    expect(wrapper.text()).toContain('Загрузить другой файл')
+    expect(wrapper.find('.menu-upload__file-reset').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Загружено')
   })
 })

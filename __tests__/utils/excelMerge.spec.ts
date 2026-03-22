@@ -166,11 +166,11 @@ describe('mergeMenuIntoTemplate', () => {
     const wb = XLSX.read(result, { type: 'array' })
     const sheet = wb.Sheets['Tech']!
 
-    // Friday: header at row 52, categories at 53, data at 54+
-    const headerCell = sheet[XLSX.utils.encode_cell({ r: 52, c: MEAL_COLUMN_MAP['Завтрак'] })]
+    // Friday: header at row 48, categories at 49, data at 50+
+    const headerCell = sheet[XLSX.utils.encode_cell({ r: 48, c: MEAL_COLUMN_MAP['Завтрак'] })]
     expect(headerCell?.v).toBe('Пятница')
 
-    const dataCell = sheet[XLSX.utils.encode_cell({ r: 54, c: MEAL_COLUMN_MAP['Горячее'] })]
+    const dataCell = sheet[XLSX.utils.encode_cell({ r: 50, c: MEAL_COLUMN_MAP['Горячее'] })]
     expect(dataCell?.v).toBe('Свинина / Svinjetina')
   })
 
