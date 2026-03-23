@@ -59,6 +59,6 @@ export const DAY_SHEET_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'] as const
 
 export const CLAUDE_MODEL = 'claude-sonnet-4-6'
 export const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
-export const CLAUDE_MAX_TOKENS = 8192
+export const CLAUDE_MAX_TOKENS = 16384
 
 export const LOCAL_STORAGE_API_KEY = 'claude_api_key'
