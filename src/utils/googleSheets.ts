@@ -3,7 +3,7 @@ const SHEETS_URL_REGEX =
 
 export function extractGoogleSheetId(url: string): string | null {
   const match = url.match(SHEETS_URL_REGEX)
-  return match ? match[1] : null
+  return match?.[1] ?? null
 }
 
 export function isValidGoogleSheetUrl(url: string): boolean {

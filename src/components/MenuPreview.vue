@@ -55,8 +55,9 @@ watch(
 
     // Otherwise switch to first done day
     const firstDone = statuses.findIndex((s) => s === 'done')
-    if (firstDone >= 0) {
-      activeDay.value = DAY_SHEET_NAMES[firstDone]
+    const firstDoneName = firstDone >= 0 ? DAY_SHEET_NAMES[firstDone] : undefined
+    if (firstDoneName) {
+      activeDay.value = firstDoneName
     }
   }
 )

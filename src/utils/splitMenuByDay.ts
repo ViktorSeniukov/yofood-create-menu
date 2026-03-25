@@ -35,7 +35,7 @@ export function splitMenuByDay(text: string): DayChunk[] {
   const sections: RawSection[] = []
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
+    const line = (lines[i] ?? '').trim()
     for (const { day, pattern } of SERBIAN_DAYS) {
       if (pattern.test(line)) {
         sections.push({ day, startLine: i })
@@ -47,12 +47,12 @@ export function splitMenuByDay(text: string): DayChunk[] {
   const chunks: DayChunk[] = []
 
   for (let s = 0; s < sections.length; s++) {
-    const { day, startLine } = sections[s]
+    const section = sections[s]
+    if (!section) continue
+    const { day, startLine } = section
     if (day === null) continue // skip Sat/Sun
 
-    const endLine = s + 1 < sections.length
-      ? sections[s + 1].startLine
-      : lines.length
+    const endLine = sections[s + 1]?.startLine ?? lines.length
 
     const dayText = lines.slice(startLine, endLine).join('\n').trim()
     if (dayText) {
