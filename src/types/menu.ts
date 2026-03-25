@@ -22,3 +22,9 @@ export type DayMenu = Record<MealCategory, DishItem[]>
 
 /** Полное недельное меню — день → меню дня */
 export type TranslatedMenu = Record<DayOfWeek, DayMenu>
+
+/** Статус перевода одного дня */
+export type DayTranslationStatus = 'pending' | 'translating' | 'done' | 'error'
+
+/** Прогресс перевода по дням */
+export type TranslationProgress = Record<DayOfWeek, DayTranslationStatus>

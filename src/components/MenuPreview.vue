@@ -1,20 +1,29 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import {
+  CheckOutlined,
   DownloadOutlined,
   FileTextOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons-vue'
 import { Button, Card, Tabs, TabPane, theme } from 'ant-design-vue'
 
-import { DAYS_OF_WEEK, MEAL_CATEGORIES } from '@/constants/menu'
+import { DAYS_OF_WEEK } from '@/constants/menu'
 import { DAY_SHEET_NAMES } from '@/constants/menu'
 import { buildMenuWorkbook } from '@/utils/excelMerge'
 
-import type { TranslatedMenu, DayOfWeek, MealCategory } from '@/types/menu'
+import type {
+  TranslatedMenu,
+  TranslationProgress,
+  DayOfWeek,
+  MealCategory,
+} from '@/types/menu'
 
 interface Props {
   menu: TranslatedMenu | null
+  dayProgress: TranslationProgress
+  isLoading: boolean
 }
 
 const props = defineProps<Props>()
@@ -22,15 +31,40 @@ const props = defineProps<Props>()
 const { token } = theme.useToken()
 const activeDay = ref<string>(DAY_SHEET_NAMES[0])
 
-const availableDays = computed(() => {
-  if (!props.menu) return []
-  return DAYS_OF_WEEK
-    .map((day, idx) => ({ full: day, short: DAY_SHEET_NAMES[idx] }))
-    .filter(({ full }) => {
-      const dayMenu = props.menu![full]
-      return MEAL_CATEGORIES.some((cat) => dayMenu[cat].length > 0)
-    })
-})
+/** All days with their translation status */
+const dayTabs = computed(() =>
+  DAYS_OF_WEEK.map((day, idx) => ({
+    full: day,
+    short: DAY_SHEET_NAMES[idx],
+    status: props.dayProgress[day],
+  }))
+)
+
+/** Auto-select first translated day when it becomes available */
+watch(
+  () => dayTabs.value.map((d) => d.status),
+  (statuses) => {
+    const currentIdx = DAY_SHEET_NAMES.indexOf(
+      activeDay.value as typeof DAY_SHEET_NAMES[number]
+    )
+    const currentDone = currentIdx >= 0
+      && statuses[currentIdx] === 'done'
+
+    // If current tab is already done, keep it
+    if (currentDone) return
+
+    // Otherwise switch to first done day
+    const firstDone = statuses.findIndex((s) => s === 'done')
+    if (firstDone >= 0) {
+      activeDay.value = DAY_SHEET_NAMES[firstDone]
+    }
+  }
+)
+
+/** Show preview when at least one day is translated */
+const hasAnyTranslated = computed(() =>
+  DAYS_OF_WEEK.some((day) => props.dayProgress[day] === 'done')
+)
 
 /** Порядок категорий для превью: соки в конце (одинаковые на все дни) */
 const PREVIEW_CATEGORIES: MealCategory[] = [
@@ -41,11 +75,13 @@ function categoriesForDay(
   day: DayOfWeek
 ): { name: MealCategory; items: string[] }[] {
   if (!props.menu) return []
+  const dayMenu = props.menu[day]
+  if (!dayMenu) return []
   return PREVIEW_CATEGORIES
-    .filter((cat) => props.menu![day][cat].length > 0)
+    .filter((cat) => dayMenu[cat]?.length > 0)
     .map((cat) => ({
       name: cat,
-      items: props.menu![day][cat],
+      items: dayMenu[cat],
     }))
 }
 
@@ -75,7 +111,7 @@ function downloadXlsx(): void {
 
 <template>
   <!-- Empty state -->
-  <Card v-if="!menu" class="menu-preview">
+  <Card v-if="!hasAnyTranslated && !isLoading" class="menu-preview">
     <div class="menu-preview__empty">
       <FileTextOutlined class="menu-preview__empty-icon" />
       <p class="menu-preview__empty-text">
@@ -84,13 +120,17 @@ function downloadXlsx(): void {
     </div>
   </Card>
 
-  <!-- Translated menu -->
+  <!-- Translated menu (progressive) -->
   <Card v-else class="menu-preview">
     <template #title>
       <span>Результат перевода</span>
     </template>
     <template #extra>
-      <Button size="small" @click="downloadXlsx">
+      <Button
+        size="small"
+        :disabled="isLoading"
+        @click="downloadXlsx"
+      >
         <template #icon>
           <DownloadOutlined />
         </template>
@@ -104,13 +144,28 @@ function downloadXlsx(): void {
       class="menu-preview__tabs"
     >
       <TabPane
-        v-for="day in availableDays"
-        :key="day.short"
-        :tab="day.short"
+        v-for="tab in dayTabs"
+        :key="tab.short"
+        :disabled="tab.status !== 'done'"
       >
+        <template #tab>
+          <span class="menu-preview__tab-label">
+            <LoadingOutlined
+              v-if="tab.status === 'translating'"
+              class="menu-preview__tab-icon"
+            />
+            <CheckOutlined
+              v-else-if="tab.status === 'done'"
+              class="menu-preview__tab-icon
+                menu-preview__tab-icon--done"
+            />
+            {{ tab.short }}
+          </span>
+        </template>
+
         <div class="menu-preview__scroll">
           <div
-            v-for="cat in categoriesForDay(day.full)"
+            v-for="cat in categoriesForDay(tab.full)"
             :key="cat.name"
             class="menu-preview__section"
           >
@@ -213,6 +268,20 @@ function downloadXlsx(): void {
 
 .menu-preview__tabs :deep(.ant-tabs-tabpane) {
   height: 100%;
+}
+
+.menu-preview__tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.menu-preview__tab-icon {
+  font-size: 10px;
+}
+
+.menu-preview__tab-icon--done {
+  color: var(--ant-color-success, #52c41a);
 }
 
 .menu-preview__scroll {

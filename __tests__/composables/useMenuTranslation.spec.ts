@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useMenuTranslation } from '@/composables/useMenuTranslation'
 import { useApiKey } from '@/composables/useApiKey'
 import * as claudeService from '@/services/claudeService'
-import type { TranslatedMenu } from '@/types/menu'
+import * as splitUtil from '@/utils/splitMenuByDay'
+import type { DayMenu, DayOfWeek, TranslatedMenu } from '@/types/menu'
 
 vi.mock('@/services/claudeService')
+vi.mock('@/utils/splitMenuByDay')
 
 /** Create a File with a working .text() method for jsdom */
 function createTextFile(content: string, name: string): File {
@@ -17,14 +19,14 @@ function createTextFile(content: string, name: string): File {
   return file
 }
 
-const emptyDay = {
-  'Сок': [] as string[],
-  'Завтрак': [] as string[],
-  'Суп': [] as string[],
-  'Горячее': [] as string[],
-  'Гарнир': [] as string[],
-  'Салат': [] as string[],
-  'Десерт': [] as string[],
+const emptyDay: DayMenu = {
+  'Сок': [],
+  'Завтрак': [],
+  'Суп': [],
+  'Горячее': [],
+  'Гарнир': [],
+  'Салат': [],
+  'Десерт': [],
 }
 
 const mockMenu: TranslatedMenu = {
@@ -33,6 +35,20 @@ const mockMenu: TranslatedMenu = {
   'Среда': { ...emptyDay },
   'Четверг': { ...emptyDay },
   'Пятница': { ...emptyDay },
+}
+
+const DAYS: DayOfWeek[] = [
+  'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница',
+]
+
+function mockSplitAndTranslate(): void {
+  vi.mocked(splitUtil.splitMenuByDay).mockReturnValue(
+    DAYS.map((day) => ({ day, text: `text for ${day}` }))
+  )
+  vi.mocked(claudeService.translateDayMenu).mockImplementation(
+    async (_text: string, day: DayOfWeek) =>
+      mockMenu[day]
+  )
 }
 
 describe('useMenuTranslation', () => {
@@ -56,7 +72,7 @@ describe('useMenuTranslation', () => {
 
   it('sets isLoading during translation and clears after', async () => {
     useApiKey().saveApiKey('sk-test')
-    vi.mocked(claudeService.translateMenu).mockResolvedValue(mockMenu)
+    mockSplitAndTranslate()
 
     const { isLoading, translateFile } = useMenuTranslation()
     const file = createTextFile('menu', 'menu.txt')
@@ -70,7 +86,7 @@ describe('useMenuTranslation', () => {
 
   it('populates translatedMenu on success', async () => {
     useApiKey().saveApiKey('sk-test')
-    vi.mocked(claudeService.translateMenu).mockResolvedValue(mockMenu)
+    mockSplitAndTranslate()
 
     const { translatedMenu, translateFile } = useMenuTranslation()
     const file = createTextFile('content', 'menu.txt')
@@ -82,7 +98,10 @@ describe('useMenuTranslation', () => {
 
   it('sets error on service failure', async () => {
     useApiKey().saveApiKey('sk-test')
-    vi.mocked(claudeService.translateMenu).mockRejectedValue(
+    vi.mocked(splitUtil.splitMenuByDay).mockReturnValue(
+      DAYS.map((day) => ({ day, text: `text for ${day}` }))
+    )
+    vi.mocked(claudeService.translateDayMenu).mockRejectedValue(
       new Error('Неверный API-ключ')
     )
 
@@ -96,9 +115,11 @@ describe('useMenuTranslation', () => {
 
   it('resets state correctly', async () => {
     useApiKey().saveApiKey('sk-test')
-    vi.mocked(claudeService.translateMenu).mockResolvedValue(mockMenu)
+    mockSplitAndTranslate()
 
-    const { translatedMenu, error, reset, translateFile } = useMenuTranslation()
+    const {
+      translatedMenu, error, dayProgress, reset, translateFile,
+    } = useMenuTranslation()
     const file = createTextFile('content', 'menu.txt')
 
     await translateFile(file)
@@ -107,5 +128,20 @@ describe('useMenuTranslation', () => {
     reset()
     expect(translatedMenu.value).toBeNull()
     expect(error.value).toBeNull()
+    expect(dayProgress['Понедельник']).toBe('pending')
+  })
+
+  it('updates dayProgress per day during translation', async () => {
+    useApiKey().saveApiKey('sk-test')
+    mockSplitAndTranslate()
+
+    const { dayProgress, translateFile } = useMenuTranslation()
+    const file = createTextFile('content', 'menu.txt')
+
+    await translateFile(file)
+
+    for (const day of DAYS) {
+      expect(dayProgress[day]).toBe('done')
+    }
   })
 })

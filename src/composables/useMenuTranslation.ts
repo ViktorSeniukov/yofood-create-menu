@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import type { Ref } from 'vue'
 
 import mammoth from 'mammoth'
@@ -6,11 +6,17 @@ import mammoth from 'mammoth'
 import { useApiKey } from './useApiKey'
 import { useConvertApiKey } from './useConvertApiKey'
 
-import { translateMenu } from '@/services/claudeService'
+import { translateDayMenu } from '@/services/claudeService'
 import { convertDocToText } from '@/services/convertApiService'
+import { DAYS_OF_WEEK } from '@/constants/menu'
+import { splitMenuByDay } from '@/utils/splitMenuByDay'
 import mockMenu from '@/fixtures/mockMenu.json'
 
-import type { TranslatedMenu } from '@/types/menu'
+import type {
+  DayTranslationStatus,
+  TranslatedMenu,
+  TranslationProgress,
+} from '@/types/menu'
 
 const USE_MOCK = false
 
@@ -28,11 +34,29 @@ function loadCachedMenu(): TranslatedMenu | null {
   }
 }
 
+function createEmptyProgress(): TranslationProgress {
+  return Object.fromEntries(
+    DAYS_OF_WEEK.map((day) => [day, 'pending' as DayTranslationStatus])
+  ) as TranslationProgress
+}
+
+function createAllDoneProgress(): TranslationProgress {
+  return Object.fromEntries(
+    DAYS_OF_WEEK.map((day) => [day, 'done' as DayTranslationStatus])
+  ) as TranslationProgress
+}
+
 const translatedMenu = ref<TranslatedMenu | null>(loadCachedMenu())
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const fileName = ref(localStorage.getItem(LS_FILE_KEY) ?? '')
 const isFromCache = ref(translatedMenu.value !== null)
+let abortController: AbortController | null = null
+const dayProgress = reactive<TranslationProgress>(
+  translatedMenu.value !== null
+    ? createAllDoneProgress()
+    : createEmptyProgress()
+)
 
 export function useMenuTranslation(): {
   translatedMenu: Ref<TranslatedMenu | null>
@@ -40,6 +64,7 @@ export function useMenuTranslation(): {
   error: Ref<string | null>
   fileName: Ref<string>
   isFromCache: Ref<boolean>
+  dayProgress: TranslationProgress
   translateFile: (file: File) => Promise<void>
   reset: () => void
 } {
@@ -77,6 +102,7 @@ export function useMenuTranslation(): {
   async function translateFile(file: File): Promise<void> {
     if (USE_MOCK) {
       translatedMenu.value = mockMenu as TranslatedMenu
+      Object.assign(dayProgress, createAllDoneProgress())
       return
     }
 
@@ -89,35 +115,72 @@ export function useMenuTranslation(): {
     error.value = null
     translatedMenu.value = null
     fileName.value = file.name
+    Object.assign(dayProgress, createEmptyProgress())
+
+    abortController = new AbortController()
+    const { signal } = abortController
 
     try {
       const text = await extractText(file)
-      const result = await translateMenu(text, apiKey.value)
-      translatedMenu.value = result
+      const chunks = splitMenuByDay(text)
+
+      // Build partial menu object to fill progressively
+      const partial = {} as Record<string, unknown>
+
+      // Launch all 5 day translations in parallel
+      const promises = chunks.map(async ({ day, text: dayText }) => {
+        dayProgress[day] = 'translating'
+        try {
+          const dayMenu = await translateDayMenu(
+            dayText, day, apiKey.value, signal
+          )
+          partial[day] = dayMenu
+          dayProgress[day] = 'done'
+
+          // Update translatedMenu progressively after each completed day
+          translatedMenu.value = { ...partial } as TranslatedMenu
+        } catch (err) {
+          dayProgress[day] = 'error'
+          throw err
+        }
+      })
+
+      await Promise.all(promises)
+
+      // Final assignment (safety net)
+      translatedMenu.value = partial as TranslatedMenu
       isFromCache.value = false
-      localStorage.setItem(LS_MENU_KEY, JSON.stringify(result))
+      localStorage.setItem(
+        LS_MENU_KEY, JSON.stringify(translatedMenu.value)
+      )
       localStorage.setItem(LS_FILE_KEY, file.name)
     } catch (err) {
+      // Ignore abort — user cancelled intentionally
+      if (err instanceof Error && err.name === 'AbortError') return
       error.value =
         err instanceof Error ? err.message : 'Неизвестная ошибка'
       console.error('[useMenuTranslation]', err)
     } finally {
       isLoading.value = false
+      abortController = null
     }
   }
 
   function reset(): void {
+    abortController?.abort()
+    abortController = null
     translatedMenu.value = null
     isLoading.value = false
     error.value = null
     fileName.value = ''
     isFromCache.value = false
+    Object.assign(dayProgress, createEmptyProgress())
     localStorage.removeItem(LS_MENU_KEY)
     localStorage.removeItem(LS_FILE_KEY)
   }
 
   return {
     translatedMenu, isLoading, error, fileName,
-    isFromCache, translateFile, reset,
+    isFromCache, dayProgress, translateFile, reset,
   }
 }
