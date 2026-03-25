@@ -31,6 +31,7 @@ export default [
         Uint8Array: 'readonly',
         TextDecoder: 'readonly',
         TextEncoder: 'readonly',
+        __APP_VERSION__: 'readonly',
       },
     },
   },

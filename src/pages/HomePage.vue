@@ -7,7 +7,7 @@ import MenuPreview from '@/components/MenuPreview.vue'
 import TemplateUpload from '@/components/TemplateUpload.vue'
 import GenerateButton from '@/components/GenerateButton.vue'
 
-const { translatedMenu } = useMenuTranslation()
+const { translatedMenu, dayProgress, isLoading } = useMenuTranslation()
 const { templateBuffer, templateFileName } = useTemplateUpload()
 </script>
 
@@ -15,7 +15,11 @@ const { templateBuffer, templateFileName } = useTemplateUpload()
   <div class="home-page">
     <div class="home-page__left">
       <MenuUpload />
-      <MenuPreview :menu="translatedMenu" />
+      <MenuPreview
+        :menu="translatedMenu"
+        :day-progress="dayProgress"
+        :is-loading="isLoading"
+      />
     </div>
     <div class="home-page__right">
       <TemplateUpload />

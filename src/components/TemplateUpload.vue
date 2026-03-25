@@ -1,24 +1,37 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import {
   CheckOutlined,
   CloseOutlined,
-  UploadOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons-vue'
-import { Card, UploadDragger, theme } from 'ant-design-vue'
-import type { UploadChangeParam } from 'ant-design-vue'
+import { Alert, Button, Card, Input, theme } from 'ant-design-vue'
 
 import { useTemplateUpload } from '@/composables/useTemplateUpload'
+import { isValidGoogleSheetUrl } from '@/utils/googleSheets'
 
-const { templateFileName, hasTemplate, uploadTemplate, reset } =
-  useTemplateUpload()
+const {
+  templateFileName,
+  hasTemplate,
+  isLoading,
+  error,
+  fetchFromGoogleSheets,
+  reset,
+} = useTemplateUpload()
 
 const { token } = theme.useToken()
 
-function handleChange(info: UploadChangeParam): void {
-  const file = info.file.originFileObj ?? info.file
-  if (file instanceof File) {
-    uploadTemplate(file)
+const sheetUrl = ref('')
+
+function handleFetchSheet(): void {
+  if (isValidGoogleSheetUrl(sheetUrl.value)) {
+    fetchFromGoogleSheets(sheetUrl.value)
   }
+}
+
+function handleReset(): void {
+  reset()
+  sheetUrl.value = ''
 }
 </script>
 
@@ -47,7 +60,7 @@ function handleChange(info: UploadChangeParam): void {
         </div>
         <button
           class="template-upload__file-reset"
-          @click="reset"
+          @click="handleReset"
         >
           <CloseOutlined />
         </button>
@@ -55,26 +68,41 @@ function handleChange(info: UploadChangeParam): void {
     </template>
 
     <template v-else>
-      <UploadDragger
-        accept=".xlsx"
-        :max-count="1"
-        :before-upload="() => false"
-        :show-upload-list="false"
-        @change="handleChange"
-      >
-        <div class="template-upload__dragger">
-          <div
-            class="template-upload__dragger-icon"
-            :style="{ background: token.colorBgLayout }"
-          >
-            <UploadOutlined style="font-size: 14px" />
-          </div>
-          <p class="template-upload__dragger-text">
-            <strong>Перетащите файл</strong> или нажмите
-          </p>
-          <p class="template-upload__dragger-hint">.xlsx</p>
-        </div>
-      </UploadDragger>
+      <div class="template-upload__link-form">
+        <Input
+          v-model:value="sheetUrl"
+          placeholder="https://docs.google.com/spreadsheets/d/..."
+          :status="
+            sheetUrl && !isValidGoogleSheetUrl(sheetUrl)
+              ? 'error'
+              : undefined
+          "
+          @press-enter="handleFetchSheet"
+        />
+        <Button
+          type="primary"
+          :disabled="!sheetUrl || !isValidGoogleSheetUrl(sheetUrl)"
+          :loading="isLoading"
+          @click="handleFetchSheet"
+        >
+          <template v-if="isLoading" #icon>
+            <LoadingOutlined />
+          </template>
+          Загрузить
+        </Button>
+      </div>
+      <p class="template-upload__link-hint">
+        Таблица должна быть доступна по ссылке
+      </p>
+
+      <Alert
+        v-if="error"
+        type="error"
+        :message="error"
+        show-icon
+        closable
+        class="template-upload__error"
+      />
     </template>
   </Card>
 </template>
@@ -82,6 +110,39 @@ function handleChange(info: UploadChangeParam): void {
 <style scoped>
 .template-upload {
   flex-shrink: 0;
+}
+
+.template-upload__mode-switch {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.template-upload__mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  transition: all 0.2s;
+}
+
+.template-upload__mode-btn + .template-upload__mode-btn {
+  border-left: 1px solid var(--ant-color-border, #d9d9d9);
+}
+
+.template-upload__mode-btn--active {
+  background: var(--ant-color-primary-bg, #e6f4ff);
+  font-weight: 500;
 }
 
 .template-upload__file-row {
@@ -165,5 +226,20 @@ function handleChange(info: UploadChangeParam): void {
   margin: 0;
   font-size: 11px;
   color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.template-upload__link-form {
+  display: flex;
+  gap: 8px;
+}
+
+.template-upload__link-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.template-upload__error {
+  margin-top: 12px;
 }
 </style>

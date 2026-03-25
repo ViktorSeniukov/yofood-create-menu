@@ -6,7 +6,7 @@ import {
   MEAL_CATEGORIES,
 } from '@/constants/menu'
 import type { ClaudeMessageResponse, ClaudeTextBlock } from '@/types/claude'
-import type { TranslatedMenu } from '@/types/menu'
+import type { DayMenu, DayOfWeek, TranslatedMenu } from '@/types/menu'
 
 const SYSTEM_PROMPT = `Ты получаешь файл с меню корпоративного питания на сербском языке.
 
@@ -32,7 +32,7 @@ const SYSTEM_PROMPT = `Ты получаешь файл с меню корпор
 - "Desert" → "Десерт"
 
 ВАЖНО ПРО ОБЕДЕННЫЕ САЛАТЫ (Obrok salate):
-Раздел «Obrok salate» содержит сытные салаты, которые являются полноценным блюдом (аналог второго блюда). Их нужно помещать в категорию «Горячее», объединяя с блюдами из раздела «Prilozi». Раздел «Salat bar» — это обычные лёгкие салаты и закуски, их помещай в категорию «Салат».
+Раздел «Obrok salate» содержит сытные салаты, которые являются полноценным блюдом (аналог второго блюда). Их нужно помещать в категорию «Горячее», объединяя с блюдами из раздела «Glavno jelo». Раздел «Salat bar» — это обычные лёгкие салаты и закуски, их помещай в категорию «Салат».
 
 ФОРМАТ КАЖДОГО БЛЮДА: "Название на русском (ингредиенты на русском) / Naziv na srpskom (sastojci na srpskom)"
 
@@ -71,6 +71,61 @@ const SYSTEM_PROMPT = `Ты получаешь файл с меню корпор
   }
 }`
 
+/** Max tokens for single-day translation (smaller than full menu) */
+const CLAUDE_DAY_MAX_TOKENS = 4096
+
+function buildDayPrompt(dayName: DayOfWeek): string {
+  return `Ты получаешь фрагмент меню корпоративного питания на сербском языке для одного дня недели: ${dayName}.
+
+Твоя задача:
+1. Извлечь из текста список блюд, сгруппированных по категориям.
+2. Перевести КАЖДОЕ блюдо на русский язык, включая все ингредиенты и описания.
+3. Сохранить оригинал на сербской латинице после слеша — тоже с ингредиентами.
+4. Вернуть результат строго в формате JSON.
+
+Категории: Завтрак, Сок, Суп, Горячее, Гарнир, Салат, Десерт.
+
+МАППИНГ РАЗДЕЛОВ МЕНЮ В КАТЕГОРИИ JSON:
+- "Doručak" → "Завтрак"
+- "Sveže ceđeni sokovi" → "Сок"
+- "Supa" / "Čorba" / "Potaž" → "Суп"
+- "Glavno jelo" → "Горячее"
+- "Prilozi" → "Гарнир"
+- "Obrok salate" → "Горячее" (ВАЖНО! Обеденные салаты — это полноценные блюда, они идут в категорию "Горячее", а НЕ в "Салат")
+- "Salat bar" → "Салат"
+- "Desert" → "Десерт"
+
+ВАЖНО ПРО ОБЕДЕННЫЕ САЛАТЫ (Obrok salate):
+Раздел «Obrok salate» содержит сытные салаты, которые являются полноценным блюдом (аналог второго блюда). Их нужно помещать в категорию «Горячее», объединяя с блюдами из раздела «Glavno jelo». Раздел «Salat bar» — это обычные лёгкие салаты и закуски, их помещай в категорию «Салат».
+
+ФОРМАТ КАЖДОГО БЛЮДА: "Название на русском (ингредиенты на русском) / Naziv na srpskom (sastojci na srpskom)"
+
+Правила перевода:
+- Название блюда — переведи на русский.
+- Ингредиенты в скобках — переведи на русский, сохраняя скобки.
+- После слеша "/" — оригинал на сербском: и название, и ингредиенты.
+- Если в оригинале ингредиенты перечислены через запятую без скобок — оберни их в скобки.
+- Если блюдо без ингредиентов — просто "Русское название / Srpski naziv".
+
+Если для какой-то категории в тексте нет блюда — поставь пустой массив [].
+Если в категории несколько вариантов блюд — добавь все в массив.
+
+ВАЖНО:
+- Верни ТОЛЬКО чистый JSON. Без \`\`\`json, без markdown, без пояснений до или после.
+- НИКОГДА не используй кавычки (", „, ") внутри значений строк. Если в оригинале есть кавычки — замени на « » или убери совсем.
+- ОБЯЗАТЕЛЬНО переводи ВСЕ слова, включая ингредиенты. Не оставляй сербские слова в русской части.
+
+Пример формата:
+{
+  "Завтрак": ["Омлет с беконом и шпинатом (яйца, бекон, шпинат, сыр) / Omlet sa slaninom i spanaćem (jaja, slanina, spanać, sir)"],
+  "Сок": ["Апельсиновый сок / Sok od pomorandže"],
+  "Суп": ["Телячий суп с овощами (телятина, морковь, лапша) / Teleća čorba sa povrćem (teletina, šargarepa, rezanci)"],
+  "Горячее": ["Мусака (мясной фарш, картофель, бешамель) / Musaka (mleveno meso, krompir, bešamel)"],
+  "Гарнир": ["Картофельное пюре / Krompir pire"],
+  "Салат": ["Салат из свёклы с грецким орехом / Salata od cvekle sa orasima"],
+  "Десерт": ["Яблочный пирог с корицей / Pita sa jabukama i cimetom"]
+}`
+}
 
 /** Replace typographic quotes „..." that break JSON parsing with «...» */
 function sanitizeQuotes(text: string): string {
@@ -178,6 +233,93 @@ export function validateTranslatedMenu(data: unknown): TranslatedMenu {
   }
 
   return data as TranslatedMenu
+}
+
+export function validateDayMenu(data: unknown, day: DayOfWeek): DayMenu {
+  if (data === null || typeof data !== 'object') {
+    throw new Error(`Ответ Claude для "${day}" не является объектом`)
+  }
+
+  const record = data as Record<string, unknown>
+
+  for (const category of MEAL_CATEGORIES) {
+    if (!(category in record)) {
+      throw new Error(
+        `Отсутствует категория "${category}" в дне "${day}"`
+      )
+    }
+
+    const dishes = record[category]
+    if (!Array.isArray(dishes)) {
+      throw new Error(
+        `Категория "${category}" в дне "${day}" не является массивом`
+      )
+    }
+
+    for (let i = 0; i < dishes.length; i++) {
+      if (typeof dishes[i] !== 'string') {
+        throw new Error(
+          `Блюдо [${i}] в "${day}" → "${category}" не является строкой`
+        )
+      }
+    }
+  }
+
+  return data as DayMenu
+}
+
+export async function translateDayMenu(
+  text: string,
+  day: DayOfWeek,
+  apiKey: string,
+  signal?: AbortSignal
+): Promise<DayMenu> {
+  const content: ClaudeTextBlock[] = [
+    { type: 'text', text: buildDayPrompt(day) },
+    { type: 'text', text },
+  ]
+
+  const response = await fetch(CLAUDE_API_URL, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: CLAUDE_DAY_MAX_TOKENS,
+      messages: [{ role: 'user', content }],
+    }),
+    signal,
+  })
+
+  if (!response.ok) {
+    let body: unknown = null
+    try {
+      body = await response.json()
+    } catch {
+      // ignore parse error
+    }
+    throw new Error(getHttpErrorMessage(response.status, body))
+  }
+
+  const result: ClaudeMessageResponse = await response.json()
+  const responseText = result.content[0]?.text
+
+  if (!responseText) {
+    throw new Error(`Claude вернул пустой ответ для "${day}"`)
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(extractJson(responseText))
+  } catch {
+    throw new Error(`Claude вернул невалидный JSON для "${day}"`)
+  }
+
+  return validateDayMenu(parsed, day)
 }
 
 export async function translateMenu(

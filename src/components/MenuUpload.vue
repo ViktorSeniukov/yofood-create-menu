@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import {
   CheckOutlined,
   CloseOutlined,
+  LoadingOutlined,
   UploadOutlined,
 } from '@ant-design/icons-vue'
 import { Alert, Card, Spin, UploadDragger, theme } from 'ant-design-vue'
@@ -11,7 +12,7 @@ import type { UploadChangeParam } from 'ant-design-vue'
 
 import { useMenuTranslation } from '@/composables/useMenuTranslation'
 
-import { DAYS_OF_WEEK, MEAL_CATEGORIES } from '@/constants/menu'
+import { DAYS_OF_WEEK, DAY_SHEET_NAMES, MEAL_CATEGORIES } from '@/constants/menu'
 
 const {
   translatedMenu,
@@ -19,6 +20,7 @@ const {
   error,
   fileName,
   isFromCache,
+  dayProgress,
   translateFile,
   reset,
 } = useMenuTranslation()
@@ -39,6 +41,14 @@ const menuStats = computed(() => {
   }, 0)
   return { days: days.length, dishes }
 })
+
+const dayItems = computed(() =>
+  DAYS_OF_WEEK.map((day, idx) => ({
+    day,
+    short: DAY_SHEET_NAMES[idx],
+    status: dayProgress[day],
+  }))
+)
 
 function handleChange(info: UploadChangeParam): void {
   const file = info.file.originFileObj ?? info.file
@@ -77,13 +87,47 @@ function handleChange(info: UploadChangeParam): void {
           </div>
           <div class="menu-upload__file-info">
             <span class="menu-upload__file-name">{{ fileName }}</span>
-            <span
-              v-if="isLoading"
-              class="menu-upload__file-status"
-              :style="{ color: token.colorPrimary }"
-            >
-              Переводим меню…
-            </span>
+            <div v-if="isLoading" class="menu-upload__file-status">
+              <span :style="{ color: token.colorPrimary }">Переводим меню…</span>
+              <div class="menu-upload__days">
+                <div
+                  v-for="item in dayItems"
+                  :key="item.day"
+                  class="menu-upload__day"
+                >
+                  <LoadingOutlined
+                    v-if="item.status === 'translating'"
+                    class="menu-upload__day-icon"
+                    :style="{ color: token.colorPrimary }"
+                  />
+                  <CheckOutlined
+                    v-else-if="item.status === 'done'"
+                    class="menu-upload__day-icon"
+                    :style="{ color: token.colorSuccess }"
+                  />
+                  <span
+                    v-else
+                    class="menu-upload__day-dot"
+                    :style="{
+                      background: item.status === 'error'
+                        ? token.colorError
+                        : token.colorTextQuaternary,
+                    }"
+                  />
+                  <span
+                    class="menu-upload__day-label"
+                    :class="{
+                      'menu-upload__day-label--active':
+                        item.status === 'translating',
+                      'menu-upload__day-label--done':
+                        item.status === 'done',
+                    }"
+                  >
+                    {{ item.short }}
+                  </span>
+                </div>
+              </div>
+            </div>
             <span
               v-else-if="menuStats"
               class="menu-upload__file-meta"
@@ -113,7 +157,7 @@ function handleChange(info: UploadChangeParam): void {
       <!-- Upload dragger -->
       <template v-else>
         <UploadDragger
-          accept=".txt,.docx"
+          accept=".txt,.docx,.doc"
           :max-count="1"
           :before-upload="() => false"
           :show-upload-list="false"
@@ -129,7 +173,9 @@ function handleChange(info: UploadChangeParam): void {
             <p class="menu-upload__dragger-text">
               <strong>Перетащите файл</strong> или нажмите
             </p>
-            <p class="menu-upload__dragger-hint">.txt или .docx</p>
+            <p class="menu-upload__dragger-hint">
+              .txt, .docx или .doc
+            </p>
           </div>
         </UploadDragger>
       </template>
@@ -185,6 +231,9 @@ function handleChange(info: UploadChangeParam): void {
 }
 
 .menu-upload__file-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   font-weight: 500;
 }
@@ -204,6 +253,43 @@ function handleChange(info: UploadChangeParam): void {
 
 .menu-upload__file-reset:hover {
   opacity: 1;
+}
+
+.menu-upload__days {
+  display: flex;
+  gap: 10px;
+}
+
+.menu-upload__day {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.menu-upload__day-icon {
+  font-size: 11px;
+}
+
+.menu-upload__day-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.menu-upload__day-label {
+  font-size: 11px;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25));
+  transition: color 0.2s;
+}
+
+.menu-upload__day-label--active {
+  color: var(--ant-color-primary, #1677ff);
+  font-weight: 500;
+}
+
+.menu-upload__day-label--done {
+  color: var(--ant-color-success, #52c41a);
 }
 
 .menu-upload__error {

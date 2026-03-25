@@ -1,16 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { theme } from 'ant-design-vue'
 
 import { useApiKey } from '@/composables/useApiKey'
+import { useConvertApiKey } from '@/composables/useConvertApiKey'
 
 import AppSettings from './AppSettings.vue'
 import mascotUrl from '@/assets/mascot.png'
 
 const { hasApiKey } = useApiKey()
+const { hasConvertApiKey } = useConvertApiKey()
+const allKeysSet = computed(
+  () => hasApiKey.value && hasConvertApiKey.value
+)
 const { token } = theme.useToken()
 const isSettingsOpen = ref(false)
+const appVersion = __APP_VERSION__
 </script>
 
 <template>
@@ -22,6 +28,7 @@ const isSettingsOpen = ref(false)
         class="app-header__logo"
       />
       <span class="app-header__title">Меню-генератор</span>
+      <span class="app-header__version">v{{ appVersion }}</span>
     </div>
     <button
       class="app-header__api-btn"
@@ -31,12 +38,12 @@ const isSettingsOpen = ref(false)
       <span
         class="app-header__dot"
         :style="{
-          backgroundColor: hasApiKey
+          backgroundColor: allKeysSet
             ? token.colorSuccess
             : token.colorError,
         }"
       />
-      API-ключ
+      API-ключи
     </button>
     <AppSettings v-model:open="isSettingsOpen" />
   </header>
@@ -69,6 +76,11 @@ const isSettingsOpen = ref(false)
 .app-header__title {
   font-size: 14px;
   font-weight: 500;
+}
+
+.app-header__version {
+  font-size: 11px;
+  color: var(--ant-color-text-tertiary, #1e1e1e6f);
 }
 
 .app-header__api-btn {

@@ -4,6 +4,7 @@ Code style for project — ./CODE_STYLE.md
 Spec for project — ./SPEC.md
 Tech spec for project — ./TECH_SPEC.md
 Implementation plan — ./PLAN.md
+Versioning flow — ./VERSIONING.md
 
 Rely on these rules in every request and action.
 
@@ -13,3 +14,4 @@ Rely on these rules in every request and action.
 - Смотри за целями проекта в файле — SPEC.md
 - Смотри за техническими деталями в файле — TECH_SPEC.md
 - Следуй плану реализации — PLAN.md
+- При каждом изменении поднимай версию согласно VERSIONING.md
