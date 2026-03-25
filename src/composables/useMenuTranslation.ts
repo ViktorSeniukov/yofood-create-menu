@@ -4,15 +4,17 @@ import type { Ref } from 'vue'
 import mammoth from 'mammoth'
 
 import { useApiKey } from './useApiKey'
+import { useConvertApiKey } from './useConvertApiKey'
 
 import { translateMenu } from '@/services/claudeService'
+import { convertDocToText } from '@/services/convertApiService'
 import mockMenu from '@/fixtures/mockMenu.json'
 
 import type { TranslatedMenu } from '@/types/menu'
 
 const USE_MOCK = false
 
-const SUPPORTED_EXTENSIONS = ['txt', 'docx']
+const SUPPORTED_EXTENSIONS = ['txt', 'docx', 'doc']
 
 const LS_MENU_KEY = 'translated_menu'
 const LS_FILE_KEY = 'translated_menu_file'
@@ -42,6 +44,7 @@ export function useMenuTranslation(): {
   reset: () => void
 } {
   const { apiKey, hasApiKey } = useApiKey()
+  const { convertApiKey, hasConvertApiKey } = useConvertApiKey()
 
   async function extractText(file: File): Promise<string> {
     const extension = file.name.split('.').pop()?.toLowerCase()
@@ -54,6 +57,16 @@ export function useMenuTranslation(): {
       const buffer = await file.arrayBuffer()
       const result = await mammoth.extractRawText({ arrayBuffer: buffer })
       return result.value
+    }
+
+    if (extension === 'doc') {
+      if (!hasConvertApiKey.value) {
+        throw new Error(
+          'Для конвертации .doc файлов укажите ConvertAPI ключ'
+          + ' в настройках'
+        )
+      }
+      return convertDocToText(file, convertApiKey.value)
     }
 
     throw new Error(

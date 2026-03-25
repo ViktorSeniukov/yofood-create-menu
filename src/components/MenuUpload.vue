@@ -113,7 +113,7 @@ function handleChange(info: UploadChangeParam): void {
       <!-- Upload dragger -->
       <template v-else>
         <UploadDragger
-          accept=".txt,.docx"
+          accept=".txt,.docx,.doc"
           :max-count="1"
           :before-upload="() => false"
           :show-upload-list="false"
@@ -129,7 +129,9 @@ function handleChange(info: UploadChangeParam): void {
             <p class="menu-upload__dragger-text">
               <strong>Перетащите файл</strong> или нажмите
             </p>
-            <p class="menu-upload__dragger-hint">.txt или .docx</p>
+            <p class="menu-upload__dragger-hint">
+              .txt, .docx или .doc
+            </p>
           </div>
         </UploadDragger>
       </template>

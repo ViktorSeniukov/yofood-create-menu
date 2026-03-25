@@ -5,6 +5,7 @@ import { CheckOutlined } from '@ant-design/icons-vue'
 import { Button, Drawer, InputPassword, theme } from 'ant-design-vue'
 
 import { useApiKey } from '@/composables/useApiKey'
+import { useConvertApiKey } from '@/composables/useConvertApiKey'
 
 interface Props {
   open: boolean
@@ -17,20 +18,28 @@ const emit = defineEmits<{
 }>()
 
 const { apiKey, hasApiKey, saveApiKey } = useApiKey()
+const {
+  convertApiKey,
+  hasConvertApiKey,
+  saveConvertApiKey,
+} = useConvertApiKey()
 const { token } = theme.useToken()
 const localKey = ref(apiKey.value)
+const localConvertKey = ref(convertApiKey.value)
 
 watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
       localKey.value = apiKey.value
+      localConvertKey.value = convertApiKey.value
     }
   }
 )
 
 function handleSave(): void {
   saveApiKey(localKey.value)
+  saveConvertApiKey(localConvertKey.value)
   emit('update:open', false)
 }
 </script>
@@ -57,6 +66,40 @@ function handleSave(): void {
       </p>
       <div
         v-if="hasApiKey"
+        class="api-drawer__status"
+        :style="{
+          background: token.colorSuccessBg,
+        }"
+      >
+        <CheckOutlined :style="{ color: token.colorSuccess }" />
+        <span>Ключ сохранён и активен</span>
+      </div>
+
+      <div class="api-drawer__divider" />
+
+      <label class="api-drawer__label">
+        ConvertAPI ключ
+        <span class="api-drawer__label-hint">
+          (для .doc файлов)
+        </span>
+      </label>
+      <InputPassword
+        v-model:value="localConvertKey"
+        placeholder="secret_..."
+        autocomplete="off"
+        data-testid="convert-api-key-input"
+      />
+      <p class="api-drawer__hint">
+        Нужен только для загрузки файлов в формате .doc.
+        Получить ключ можно на
+        <a
+          href="https://www.convertapi.com/a/authentication"
+          target="_blank"
+          rel="noopener"
+        >convertapi.com</a>
+      </p>
+      <div
+        v-if="hasConvertApiKey"
         class="api-drawer__status"
         :style="{
           background: token.colorSuccessBg,
@@ -105,5 +148,16 @@ function handleSave(): void {
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 12px;
+}
+
+.api-drawer__divider {
+  height: 1px;
+  margin: 8px 0;
+  background: var(--ant-color-border, rgba(0, 0, 0, 0.06));
+}
+
+.api-drawer__label-hint {
+  font-weight: 400;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
 }
 </style>
