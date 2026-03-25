@@ -16,6 +16,7 @@ const allKeysSet = computed(
 )
 const { token } = theme.useToken()
 const isSettingsOpen = ref(false)
+const appVersion = __APP_VERSION__
 </script>
 
 <template>
@@ -27,6 +28,7 @@ const isSettingsOpen = ref(false)
         class="app-header__logo"
       />
       <span class="app-header__title">Меню-генератор</span>
+      <span class="app-header__version">v{{ appVersion }}</span>
     </div>
     <button
       class="app-header__api-btn"
@@ -74,6 +76,11 @@ const isSettingsOpen = ref(false)
 .app-header__title {
   font-size: 14px;
   font-weight: 500;
+}
+
+.app-header__version {
+  font-size: 11px;
+  color: var(--ant-color-text-tertiary, #1e1e1e6f);
 }
 
 .app-header__api-btn {
