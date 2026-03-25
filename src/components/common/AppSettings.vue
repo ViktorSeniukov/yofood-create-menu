@@ -62,7 +62,7 @@ function handleSave(): void {
       />
       <p class="api-drawer__hint">
         Ключ сохраняется только в localStorage вашего браузера
-        и никуда не отправляется
+        и никуда не отправляется. Получить ключ можно у администратора сервиса.
       </p>
       <div
         v-if="hasApiKey"
@@ -90,13 +90,9 @@ function handleSave(): void {
         data-testid="convert-api-key-input"
       />
       <p class="api-drawer__hint">
-        Нужен только для загрузки файлов в формате .doc.
-        Получить ключ можно на
-        <a
-          href="https://www.convertapi.com/a/authentication"
-          target="_blank"
-          rel="noopener"
-        >convertapi.com</a>
+        Ключ сохраняется только в localStorage вашего браузера
+        и никуда не отправляется. Нужен только для загрузки файлов
+        в формате .doc. Получить ключ можно у администратора сервиса.
       </p>
       <div
         v-if="hasConvertApiKey"
