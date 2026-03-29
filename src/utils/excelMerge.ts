@@ -684,6 +684,13 @@ export async function mergeMenuIntoTemplate(
   // Build cells for Tech sheet and insert into XML
   const techCells = buildTechCells(menu, existingStrings, newStringsMap)
   let techSheetXml = await zip.file(techSheetFile)!.async('string')
+  // Clear existing data before inserting to avoid stale rows from previous week
+  const techLastRow = detectLastRow(techSheetXml)
+  techSheetXml = clearCellsInRange(
+    techSheetXml,
+    0, Math.max(0, techLastRow), // all rows (0-indexed)
+    5, 11                        // columns F–L (0-indexed: 5–11)
+  )
   techSheetXml = insertCellsIntoSheetXml(techSheetXml, techCells)
   zip.file(techSheetFile, techSheetXml)
 
