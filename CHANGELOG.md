@@ -28,6 +28,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versio
 
 ---
 
+## [1.0.1] — 2026-03-29
+
+### Fixed
+- **Tech sheet stale rows** — after merging, rows from the previous week's template no longer remain in the Tech sheet. The data range (columns F–L) is now cleared before inserting new menu data, consistent with how day sheets are handled.
+
+---
+
 ## [Unreleased]
 
 _Nothing yet._
