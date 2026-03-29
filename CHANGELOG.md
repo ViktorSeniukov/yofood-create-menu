@@ -6,6 +6,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versio
 
 ---
 
+## [Unreleased]
+
+_Nothing yet._
+
+---
+
+## [1.0.1] — 2026-03-29
+
+### Fixed
+- **Tech sheet stale rows** — after merging, rows from the previous week's template no longer remain in the Tech sheet. The data range (columns F–L) is now cleared before inserting new menu data, consistent with how day sheets are handled.
+
+---
+
 ## [1.0.0] — 2026-03-25
 
 ### Added
@@ -25,16 +38,3 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versio
 - Claude prompt tuned for stable bilingual dish and ingredient translation.
 - CI/CD pipeline: ESLint, TypeScript type-check, Vitest tests, GitHub Pages deploy.
 - First-week UX patches: file drag-and-drop, error handling, token limit increase, password field protection.
-
----
-
-## [1.0.1] — 2026-03-29
-
-### Fixed
-- **Tech sheet stale rows** — after merging, rows from the previous week's template no longer remain in the Tech sheet. The data range (columns F–L) is now cleared before inserting new menu data, consistent with how day sheets are handled.
-
----
-
-## [Unreleased]
-
-_Nothing yet._
