@@ -12,6 +12,13 @@ _Nothing yet._
 
 ---
 
+## [1.1.0] — 2026-04-26
+
+### Changed
+- **Switched .doc conversion from ConvertAPI to CloudConvert** — the `convertapi-js` dependency has been removed; `.doc → .txt` conversion now uses the [CloudConvert](https://cloudconvert.com/) REST API (job-based flow with polling). The UI label and localStorage key have been updated accordingly.
+
+---
+
 ## [1.0.1] — 2026-03-29
 
 ### Fixed

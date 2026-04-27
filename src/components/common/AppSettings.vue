@@ -78,14 +78,14 @@ function handleSave(): void {
       <div class="api-drawer__divider" />
 
       <label class="api-drawer__label">
-        ConvertAPI ключ
+        CloudConvert ключ
         <span class="api-drawer__label-hint">
           (для .doc файлов)
         </span>
       </label>
       <InputPassword
         v-model:value="localConvertKey"
-        placeholder="secret_..."
+        placeholder="eyJ0eX..."
         autocomplete="off"
         data-testid="convert-api-key-input"
       />

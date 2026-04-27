@@ -7,7 +7,7 @@ import { useApiKey } from './useApiKey'
 import { useConvertApiKey } from './useConvertApiKey'
 
 import { translateDayMenu } from '@/services/claudeService'
-import { convertDocToText } from '@/services/convertApiService'
+import { convertDocToText } from '@/services/cloudConvertService'
 import { DAYS_OF_WEEK } from '@/constants/menu'
 import { splitMenuByDay } from '@/utils/splitMenuByDay'
 import mockMenu from '@/fixtures/mockMenu.json'
@@ -87,7 +87,7 @@ export function useMenuTranslation(): {
     if (extension === 'doc') {
       if (!hasConvertApiKey.value) {
         throw new Error(
-          'Для конвертации .doc файлов укажите ConvertAPI ключ'
+          'Для конвертации .doc файлов укажите CloudConvert ключ'
           + ' в настройках'
         )
       }

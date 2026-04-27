@@ -62,4 +62,4 @@ export const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
 export const CLAUDE_MAX_TOKENS = 16384
 
 export const LOCAL_STORAGE_API_KEY = 'claude_api_key'
-export const LOCAL_STORAGE_CONVERT_API_KEY = 'convert_api_key'
+export const LOCAL_STORAGE_CONVERT_API_KEY = 'cloud_convert_api_key'
