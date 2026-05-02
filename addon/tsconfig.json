@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "experimentalDecorators": true,
+    "target": "ES2019",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*"]
+}

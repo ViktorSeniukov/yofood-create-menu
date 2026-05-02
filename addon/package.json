@@ -1,0 +1,13 @@
+{
+  "name": "yofood-menu-addon",
+  "version": "1.0.0",
+  "scripts": {
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.83"
+  }
+}
