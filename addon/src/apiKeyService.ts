@@ -13,3 +13,15 @@ function clearApiKey(): void {
 function hasApiKey(): boolean {
   return !!getApiKey()
 }
+
+function saveCloudConvertKey(key: string): void {
+  PropertiesService.getUserProperties().setProperty(PROPS_CLOUDCONVERT_KEY, key)
+}
+
+function getCloudConvertKey(): string | null {
+  return PropertiesService.getUserProperties().getProperty(PROPS_CLOUDCONVERT_KEY)
+}
+
+function hasCloudConvertKey(): boolean {
+  return !!getCloudConvertKey()
+}

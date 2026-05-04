@@ -33,3 +33,8 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
 const CLAUDE_MAX_TOKENS = 4096
 
 const PROPS_API_KEY = 'claude_api_key'
+const PROPS_CLOUDCONVERT_KEY = 'cloudconvert_api_key'
+
+const CLOUDCONVERT_API_URL = 'https://api.cloudconvert.com/v2'
+const CLOUDCONVERT_POLL_INTERVAL_MS = 2000
+const CLOUDCONVERT_MAX_POLLS = 30

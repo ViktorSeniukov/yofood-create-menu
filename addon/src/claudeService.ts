@@ -31,7 +31,6 @@ function translateMenu(base64Data: string, mimeType: string): TranslatedMenu {
   const apiKey = getApiKey()
   if (!apiKey) throw new Error('API-ключ не задан')
 
-  // Strip data URL prefix if present (data:mime/type;base64,XXX)
   const base64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data
 
   type ContentBlock =
@@ -44,11 +43,11 @@ function translateMenu(base64Data: string, mimeType: string): TranslatedMenu {
     const bytes = Utilities.base64Decode(base64)
     const text = Utilities.newBlob(bytes).getDataAsString()
     fileBlock = { type: 'text', text }
+  } else if (mimeType === 'application/msword') {
+    const text = convertDocToText(base64Data, mimeType)
+    fileBlock = { type: 'text', text }
   } else {
-    fileBlock = {
-      type: 'document',
-      source: { type: 'base64', media_type: mimeType, data: base64 },
-    }
+    fileBlock = { type: 'document', source: { type: 'base64', media_type: mimeType, data: base64 } }
   }
 
   const payload = {
