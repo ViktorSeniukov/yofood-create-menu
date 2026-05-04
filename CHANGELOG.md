@@ -12,6 +12,13 @@ _Nothing yet._
 
 ---
 
+## [1.1.1] — 2026-05-04
+
+### Added
+- **Filename input before generate** — users can now set a custom name for the output `.xlsx` file. The field is pre-filled with `Meals for dd.mm-dd.mm` based on next week's Monday–Friday dates and falls back to the default if left empty.
+
+---
+
 ## [1.1.0] — 2026-04-26
 
 ### Changed
