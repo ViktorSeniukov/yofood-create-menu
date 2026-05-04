@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { CheckOutlined } from '@ant-design/icons-vue'
-import { Button, Card, message, theme } from 'ant-design-vue'
+import { Button, Card, Input, message, theme } from 'ant-design-vue'
 
 import { useMenuGeneration } from '@/composables/useMenuGeneration'
 import { useMenuTranslation } from '@/composables/useMenuTranslation'
@@ -19,6 +19,23 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+function getNextWeekFileName(): string {
+  const today = new Date()
+  const dayOfWeek = today.getDay()
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek
+  const monday = new Date(today)
+  monday.setDate(today.getDate() + daysUntilMonday)
+  const friday = new Date(monday)
+  friday.setDate(monday.getDate() + 4)
+
+  const fmt = (d: Date): string =>
+    `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`
+
+  return `Meals for ${fmt(monday)}-${fmt(friday)}`
+}
+
+const fileName = ref(getNextWeekFileName())
 
 const { isGenerating, error, generate } = useMenuGeneration()
 const { translatedMenu } = useMenuTranslation()
@@ -47,10 +64,9 @@ const hintText = computed(() => {
 
 async function handleClick(): Promise<void> {
   if (!props.menu || !props.templateBuffer) return
+  const name = (fileName.value.trim() || getNextWeekFileName()) + '.xlsx'
   try {
-    await generate(
-      props.menu, props.templateBuffer, props.templateFileName
-    )
+    await generate(props.menu, props.templateBuffer, name)
     message.success('Файл готов!')
   } catch {
     message.error('Ошибка генерации файла')
@@ -134,6 +150,11 @@ async function handleClick(): Promise<void> {
   </Card>
 
   <div class="generate-block">
+    <Input
+      v-model:value="fileName"
+      addon-after=".xlsx"
+      data-testid="file-name-input"
+    />
     <Button
       type="primary"
       block
