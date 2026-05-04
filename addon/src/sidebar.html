@@ -144,8 +144,17 @@
 </div>
 
 <div class="section">
+  <label>CloudConvert API ключ <span style="font-weight:400;color:#5f6368">(только для .docx)</span></label>
+  <div class="key-row">
+    <input type="password" id="ccKey" placeholder="eyJ0eXAiOiJKV1Q..." autocomplete="off">
+    <button class="btn-secondary" onclick="onSaveCcKey()">Сохранить</button>
+  </div>
+  <div class="key-status" id="ccKeyStatus"></div>
+</div>
+
+<div class="section">
   <label>Файл меню (.txt или .docx)</label>
-  <input type="file" id="menuFile" accept=".txt,.docx" onchange="onFileSelected()">
+  <input type="file" id="menuFile" accept=".txt,.doc,.docx" onchange="onFileSelected()">
 </div>
 
 <button class="btn-primary" id="runBtn" disabled onclick="onRun()">
@@ -158,7 +167,6 @@
   var fileBase64 = null
   var fileMime = null
 
-  // On load: check if key is already saved
   google.script.run
     .withSuccessHandler(function(hasSaved) {
       if (hasSaved) {
@@ -167,6 +175,15 @@
       }
     })
     .hasApiKey()
+
+  google.script.run
+    .withSuccessHandler(function(hasSaved) {
+      if (hasSaved) {
+        document.getElementById('ccKeyStatus').textContent = 'Ключ сохранён'
+        document.getElementById('ccKeyStatus').className = 'key-status saved'
+      }
+    })
+    .hasCloudConvertKey()
 
   function onSaveKey() {
     var key = document.getElementById('apiKey').value.trim()
@@ -181,13 +198,26 @@
       .saveApiKey(key)
   }
 
+  function onSaveCcKey() {
+    var key = document.getElementById('ccKey').value.trim()
+    if (!key) return
+    google.script.run
+      .withSuccessHandler(function() {
+        document.getElementById('ccKey').value = ''
+        document.getElementById('ccKeyStatus').textContent = 'Ключ сохранён'
+        document.getElementById('ccKeyStatus').className = 'key-status saved'
+      })
+      .withFailureHandler(showError)
+      .saveCloudConvertKey(key)
+  }
+
   function onFileSelected() {
     var file = document.getElementById('menuFile').files[0]
     if (!file) { fileBase64 = null; fileMime = null; updateRunBtn(); return }
 
-    fileMime = file.type || (file.name.endsWith('.docx')
-      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      : 'text/plain')
+    fileMime = file.type ||
+      (file.name.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+       file.name.endsWith('.doc') ? 'application/msword' : 'text/plain')
 
     var reader = new FileReader()
     reader.onload = function(e) {
